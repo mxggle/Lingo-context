@@ -1,4 +1,4 @@
-// Linguist Pro - Content Script
+// LingoContext - Content Script
 // Handles text selection and popup display
 
 // Inline config (content scripts can't use ES modules)
@@ -19,16 +19,33 @@ let initialPopupX = 0;
 let initialPopupY = 0;
 
 // Initialize the extension
+let isExtensionEnabled = true;
+
 function init() {
+  // Check enabled state
+  chrome.storage.local.get(['EXTENSION_ENABLED'], (result) => {
+    isExtensionEnabled = result.EXTENSION_ENABLED !== false;
+  });
+
+  // Listen for changes
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.EXTENSION_ENABLED) {
+      isExtensionEnabled = changes.EXTENSION_ENABLED.newValue;
+      if (!isExtensionEnabled) {
+        hidePopup();
+      }
+    }
+  });
+
   createPopup();
   setupEventListeners();
-  console.log('Linguist Pro content script loaded');
+  console.log('LingoContext content script loaded');
 }
 
 // Create Shadow DOM popup
 function createPopup() {
   const host = document.createElement('div');
-  host.id = 'linguist-pro-host';
+  host.id = 'lingo-context-host';
   shadowRoot = host.attachShadow({ mode: 'closed' });
 
   // Inject styles into shadow DOM
@@ -38,7 +55,7 @@ function createPopup() {
 
   // Create popup container
   popup = document.createElement('div');
-  popup.id = 'linguist-pro-popup';
+  popup.id = 'lingo-context-popup';
   popup.className = 'popup hidden';
   shadowRoot.appendChild(popup);
 
@@ -59,13 +76,13 @@ function getPopupStyles() {
       z-index: 2147483647;
       max-width: 380px;
       min-width: 280px;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border: 1px solid rgba(148, 163, 184, 0.1);
+      background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+      border: 1px solid rgba(120, 113, 108, 0.2);
       border-radius: 16px;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
                   0 0 0 1px rgba(255, 255, 255, 0.05);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      color: #e2e8f0;
+      color: #e7e5e4;
       animation: slideUp 0.25s ease-out;
       overflow: hidden;
     }
@@ -91,7 +108,7 @@ function getPopupStyles() {
       justify-content: space-between;
       padding: 12px 16px;
       background: rgba(255, 255, 255, 0.03);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      border-bottom: 1px solid rgba(120, 113, 108, 0.2);
       cursor: move;
       user-select: none;
     }
@@ -101,13 +118,13 @@ function getPopupStyles() {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #94a3b8;
+      color: #a8a29e;
     }
 
     .close-btn {
       background: none;
       border: none;
-      color: #64748b;
+      color: #78716c;
       cursor: pointer;
       padding: 4px;
       border-radius: 6px;
@@ -119,7 +136,7 @@ function getPopupStyles() {
 
     .close-btn:hover {
       background: rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
+      color: #e7e5e4;
     }
 
     .popup-content {
@@ -129,7 +146,7 @@ function getPopupStyles() {
     .selected-text {
       font-size: 20px;
       font-weight: 600;
-      color: #f8fafc;
+      color: #fafaf9;
       margin-bottom: 12px;
       line-height: 1.4;
     }
@@ -143,7 +160,7 @@ function getPopupStyles() {
       display: ruby-text;
       font-size: 0.5em;
       text-align: center;
-      color: #a78bfa;
+      color: #fbbf24;
     }
 
     .section {
@@ -159,22 +176,22 @@ function getPopupStyles() {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #64748b;
+      color: #a8a29e;
       margin-bottom: 4px;
     }
 
     .section-content {
       font-size: 14px;
       line-height: 1.6;
-      color: #cbd5e1;
+      color: #d6d3d1;
     }
 
     .meaning-content {
-      color: #38bdf8;
+      color: #fbbf24;
     }
 
     .grammar-content {
-      color: #a78bfa;
+      color: #fcd34d;
       font-size: 13px;
     }
 
@@ -183,7 +200,7 @@ function getPopupStyles() {
       gap: 8px;
       margin-top: 16px;
       padding-top: 12px;
-      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      border-top: 1px solid rgba(120, 113, 108, 0.2);
     }
 
     .action-btn {
@@ -202,24 +219,24 @@ function getPopupStyles() {
     }
 
     .action-btn.primary {
-      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-      color: white;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #1c1917;
     }
 
     .action-btn.primary:hover {
-      background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+      background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
       transform: translateY(-1px);
     }
 
     .action-btn.secondary {
       background: rgba(255, 255, 255, 0.05);
-      color: #94a3b8;
-      border: 1px solid rgba(148, 163, 184, 0.1);
+      color: #a8a29e;
+      border: 1px solid rgba(120, 113, 108, 0.2);
     }
 
     .action-btn.secondary:hover {
       background: rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
+      color: #e7e5e4;
     }
 
     .action-btn:disabled {
@@ -244,8 +261,8 @@ function getPopupStyles() {
     .loading-spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid rgba(14, 165, 233, 0.2);
-      border-top-color: #0ea5e9;
+      border: 3px solid rgba(251, 191, 36, 0.2);
+      border-top-color: #fbbf24;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -257,7 +274,7 @@ function getPopupStyles() {
     .loading-text {
       margin-top: 12px;
       font-size: 13px;
-      color: #64748b;
+      color: #a8a29e;
     }
 
     .error {
@@ -301,7 +318,7 @@ function setupEventListeners() {
   // Close popup on click outside (but allow interaction inside popup)
   document.addEventListener('mousedown', (e) => {
     // Check if click is inside the shadow host
-    const host = document.getElementById('linguist-pro-host');
+    const host = document.getElementById('lingo-context-host');
     if (host && host.contains(e.target)) {
       return; // Don't close if clicking inside our extension
     }
@@ -378,8 +395,11 @@ function setupDragListeners() {
 
 // Handle text selection
 function handleSelection(e) {
-  // Don't trigger on popup clicks
-  if (e.target.closest('#linguist-pro-host')) {
+  if (e.target.closest('#lingo-context-host')) {
+    return;
+  }
+
+  if (!isExtensionEnabled) {
     return;
   }
 
@@ -517,19 +537,17 @@ function showPopup(rect, text, mode) {
 async function analyzeText(text, context, mode) {
   isLoading = true;
 
-  // Determine target language based on source text
-  const sourceLang = detectLanguage(text);
-  // If source is Japanese, target is English. Otherwise (English/Other), target is Japanese.
-  // This can be made configurable later.
-  const targetLanguage = sourceLang === 'ja' ? 'English' : 'Japanese';
+  // The backend will use the user's preferred target language from their profile
+  // If not set, it defaults to English
+  // We don't pass targetLanguage here so the backend can use the user's preference
 
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'ANALYZE_TEXT',
       text,
       context,
-      mode,
-      targetLanguage
+      mode
+      // targetLanguage is not passed - backend will use user's preference
     });
 
     if (response.error) {
@@ -696,8 +714,10 @@ async function saveWord(text, data) {
     });
 
     if (response.error) {
-      // If error (likely backend missing), show specific toast
-      if (response.message.includes('backend URL')) {
+      const msg = response.message;
+      if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('HTTP 401')) {
+        showToast('Please Login to Save', 'login');
+      } else if (msg.includes('backend URL')) {
         showToast('Backend not configured');
       } else {
         showToast('Failed to save: ' + response.message);
@@ -712,28 +732,59 @@ async function saveWord(text, data) {
 }
 
 // Show toast notification
-function showToast(message) {
+function showToast(message, action = null) {
   const toast = document.createElement('div');
   toast.style.cssText = `
     position: fixed;
     bottom: 20px;
     right: 20px;
     padding: 12px 20px;
-    background: #1e293b;
-    color: #e2e8f0;
+    background: #1c1917;
+    color: #e7e5e4;
     border-radius: 10px;
     font-family: -apple-system, sans-serif;
     font-size: 14px;
     z-index: 2147483647;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    border: 1px solid rgba(120, 113, 108, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
     animation: slideUp 0.3s ease-out;
   `;
-  toast.textContent = message;
+
+  const text = document.createElement('span');
+  text.textContent = message;
+  toast.appendChild(text);
+
+  if (action === 'login') {
+    const btn = document.createElement('button');
+    btn.textContent = 'Login';
+    btn.style.cssText = `
+      background: #4285F4;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+    `;
+    btn.onclick = () => {
+      // Content scripts can't create tabs, so ask background script to do it
+      chrome.runtime.sendMessage({ type: 'OPEN_LOGIN' });
+      toast.remove();
+    };
+    toast.appendChild(btn);
+  }
+
   document.body.appendChild(toast);
 
   setTimeout(() => {
-    toast.remove();
-  }, 3000);
+    if (document.body.contains(toast)) {
+      toast.remove();
+    }
+  }, 5000);
 }
 
 // Hide popup

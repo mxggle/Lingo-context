@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Linguist Pro - Hot Reload for Development
+ * LingoContext - Hot Reload for Development
  * 
  * This script watches for file changes and triggers extension reload.
  * Run with: npm run dev
@@ -124,7 +124,7 @@ const server = http.createServer((req, res) => {
 
 // Start watching and server
 function start() {
-    console.log('\n' + colors.bright + colors.cyan + '  📚 Linguist Pro - Hot Reload Server' + colors.reset + '\n');
+    console.log('\n' + colors.bright + colors.cyan + '  📚 LingoContext - Hot Reload Server' + colors.reset + '\n');
 
     // Start server
     server.listen(PORT, () => {

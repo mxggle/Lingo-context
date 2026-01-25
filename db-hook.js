@@ -1,4 +1,4 @@
-// Linguist Pro - Database Hook
+// LingoContext - Database Hook
 // Placeholder for custom SQL backend integration
 
 import { getConfig } from './config.js';
@@ -42,7 +42,8 @@ export async function saveWord(data) {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || `HTTP ${response.status}`);
+            // Backend sends { error: 'message' }
+            throw new Error(error.error || error.message || `HTTP ${response.status}`);
         }
 
         return await response.json();

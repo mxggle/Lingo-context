@@ -1,99 +1,147 @@
-# Linguist Pro
+# LingoContext 🌐
 
-A Chrome Extension for English/Japanese learners that provides instant context, grammar, and pronunciation using Gemini AI and browser TTS.
+**LingoContext** (formerly Word Cursor) is a powerful Chrome Extension designed for language learners (English/Japanese). It provides instant, context-aware definitions, grammar explanations, and pronunciation guides using Google's **Gemini AI** and browser-native Text-to-Speech.
 
-## Features
+It comes with a full-featured **Dashboard** to track your vocabulary, view usage statistics, and manage your learning history.
 
-- 📖 **Smart Selection Detection**: Words (≤3) get dictionary lookup, phrases get contextual analysis
-- 🤖 **Gemini AI Integration**: Context-aware grammar and meaning explanations
-- 🔊 **Free TTS**: Uses Chrome's built-in text-to-speech with high-quality voices
-- 🎌 **Japanese Support**: Furigana (ruby text) for kanji readings
-- 💾 **Word Saving**: Save words to your custom backend (optional)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## Setup
+---
 
-### 1. Install Dependencies
+## ✨ Features
+
+- **📖 Context-Aware Analysis**: Select text to get definitions, translations, and grammar breakdowns based on the surrounding sentence context.
+- **🤖 Gemini AI Powered**: utilizes `gemini-2.0-flash-lite` for fast and accurate linguistic analysis.
+- **🔊 Native High-Quality TTS**: Uses the browser's built-in text-to-speech engine.
+- **🎌 Furigana Support**: automatically generates Ruby text (furigana) for Japanese Kanji.
+- **📊 Vocabulary Dashboard**: A dedicated interface to review saved words, search by language, and manage your collection.
+- **� Usage Tracking**: Monitors your API usage and token costs.
+- **🔐 Google Authentication**: Secure login to sync your data across devices.
+- **🐳 Docker Ready**: Full backend stack containerized for easy deployment.
+
+## 🛠️ Technology Stack
+
+- **Extension**: Vanilla JavaScript (ES Module), Chrome Extension MV3
+- **Styling**: TailwindCSS
+- **Backend**: Node.js, Express.js
+- **Database**: MySQL (via Docker)
+- **AI**: Google Gemini API
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v18+)
+- Docker & Docker Compose (for backend)
+- Google Cloud Console Project (for OAuth)
+- Gemini API Key
+
+### 1. Installation
+
+Clone the repository and install dependencies:
 
 ```bash
+# Install root dependencies (for Tailwind and Scripts)
 npm install
+
+# Install server dependencies
+cd server && npm install && cd ..
 ```
 
-### 2. Load Extension in Chrome
+### 2. Configuration
 
-1. Open `chrome://extensions/`
-2. Enable "Developer mode" (top right toggle)
-3. Click "Load unpacked"
-4. Select the `word-cursor` folder
+#### Server (.env)
 
-### 3. Configure API Key
+Create a `.env` file in the `server/` directory:
 
-1. Click the extension icon in Chrome toolbar
-2. Enter your [Gemini API key](https://makersuite.google.com/app/apikey)
-3. Click "Save Settings"
+```env
+# server/.env
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash-lite
+PORT=3000
+DATABASE_URL=mysql://user:password@localhost:3306/LingoContext
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+SESSION_SECRET=your_random_session_secret
+```
 
-## Development with Hot Reload
+*Note: For Docker, the `DATABASE_URL` host is automatically handled, but you need to pass these variables in `docker-compose.yml` or a root `.env`.*
 
-Start the hot reload server:
+#### Extension (config.js)
+
+The extension defaults to `http://localhost:3000/api`. If deploying remotely, update `src/config.js` or `config.js` with your production URL.
+
+### 3. Running Locally
+
+#### Option A: Full Stack with Docker (Recommended)
+
+This starts both the MySQL database and the Node.js server.
 
 ```bash
-npm run dev
+docker-compose up --build
 ```
 
-The extension will automatically reload when you modify any `.js`, `.html`, `.css`, or `.json` file.
+#### Option B: Local Development (Manual)
 
-## Usage
+1. **Start Database**: Ensure you have a MySQL instance running or use `docker-compose up mysql -d`.
+2. **Start Server**:
+   ```bash
+   cd server
+   node index.js
+   ```
+3. **Build CSS**:
+   ```bash
+   npm run build:css
+   # or watch for changes
+   npm run watch:css
+   ```
 
-1. Select any text on a webpage
-2. A popup appears with:
-   - **Meaning**: Definition or translation
-   - **Grammar**: Grammar breakdown
-   - **Furigana**: Ruby text for Japanese
-3. Click 🔊 to hear pronunciation
-4. Click 💾 to save the word (requires backend configuration)
+### 4. Load Extension in Chrome
 
-## File Structure
+1. Open `chrome://extensions/`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked**.
+4. Select the project root folder (`word-cursor` / `lingo-context`).
 
-```
-word-cursor/
-├── manifest.json      # Extension manifest (MV3)
-├── background.js      # Service worker (Gemini API + TTS)
-├── content.js         # Selection detection + popup UI
-├── config.js          # Configuration settings
-├── popup.html/js      # Extension popup (settings)
-├── db-hook.js         # Backend integration placeholder
-├── hot-reload.js      # Development hot reload server
-├── styles.css         # Minimal styles (Shadow DOM handles popup)
-└── icons/             # Extension icons
-```
+## 📦 Packaging for Release
 
-## Configuration
+To create a clean `.zip` file for the Chrome Web Store:
 
-Edit `config.js` to customize:
-
-- `GEMINI_API_KEY`: Your Gemini API key
-- `GEMINI_MODEL`: Model to use (default: gemini-1.5-flash)
-- `BACKEND_URL`: Your backend endpoint for saving words
-- `TTS_RATE`: Speech rate (0.9 = slightly slower)
-- `WORD_THRESHOLD`: Max words for "word mode" (default: 3)
-
-## Backend Integration
-
-To save words to your database, implement a POST endpoint that accepts:
-
-```json
-{
-  "text": "selected text",
-  "meaning": "definition",
-  "grammar": "grammar notes",
-  "context": "surrounding text",
-  "language": "ja",
-  "url": "source URL",
-  "savedAt": "ISO timestamp"
-}
+```bash
+npm run package
 ```
 
-Set your endpoint URL in the extension settings.
+This creates `extension.zip` in the root directory, excluding development files (`node_modules`, `server`, `.git`, etc).
 
-## License
+## 🖥️ Usage
 
-MIT
+1. **Login**: Click the extension icon and sign in with Google.
+2. **Analyze**: Select text on any webpage. A popup will appear with:
+   - Meaning & Translation
+   - Grammar Breakdown
+   - Furigana (for Japanese)
+3. **Listen**: Click the Speaker icon 🔊 for pronunciation.
+4. **Save**: Click the Save icon 💾 to store it in your dashboard.
+5. **Review**: Right-click the extension icon and select "Options", or open the Dashboard from the popup to view your saved vocabulary.
+
+## 📂 Project Structure
+
+```
+.
+├── manifest.json       # Chrome Extension Manifest
+├── content.js          # Main content script (UI injection)
+├── background.js       # Background service worker
+├── dashboard.html/js   # Vocabulary Manager Dashboard
+├── popup.html/js       # Login & Quick Actions
+├── styles.css          # Generated Tailwind CSS
+├── server/             # Express Backend
+│   ├── index.js        # API Routes
+│   ├── db.js           # Database Connection
+│   └── schema.sql      # Database Schema
+└── docker-compose.yml  # Container Orchestration
+```
+
+## 📄 License
+
+MIT License.

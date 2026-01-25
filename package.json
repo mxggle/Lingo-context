@@ -1,11 +1,12 @@
 {
-    "name": "linguist-pro",
+    "name": "lingo-context",
     "version": "1.0.0",
     "description": "Chrome Extension for English/Japanese learners",
     "scripts": {
         "dev": "node hot-reload.js",
         "build:css": "npx tailwindcss -i ./src/input.css -o ./styles.css --minify",
-        "watch:css": "npx tailwindcss -i ./src/input.css -o ./styles.css --watch"
+        "watch:css": "npx tailwindcss -i ./src/input.css -o ./styles.css --watch",
+        "package": "zip -r extension.zip . -x '*.git*' 'node_modules*' 'server*' 'mysql-data*' 'postgres-data*' '*.DS_Store*'"
     },
     "devDependencies": {
         "tailwindcss": "^3.4.0"

@@ -1,4 +1,4 @@
-// Configuration for Linguist Pro
+// Configuration for LingoContext
 // Update these values with your own API keys and endpoints
 
 export const CONFIG = {

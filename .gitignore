@@ -7,3 +7,6 @@ build
 .idea
 *.log
 coverage
+postgres-data
+mysql-data
+pr.md

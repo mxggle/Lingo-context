@@ -1,4 +1,4 @@
-// Linguist Pro - Background Service Worker
+// LingoContext - Background Service Worker
 // Handles Gemini API requests and TTS playback
 
 import { CONFIG, getConfig } from './config.js';
@@ -180,6 +180,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             .catch(error => sendResponse({ error: true, message: error.message }));
         return true;
     }
+
+    if (message.type === 'OPEN_LOGIN') {
+        getConfig('BACKEND_URL').then(backendUrl => {
+            if (backendUrl) {
+                const rootUrl = backendUrl.replace('/api', '');
+                chrome.tabs.create({ url: `${rootUrl}/auth/google` });
+            } else {
+                chrome.tabs.create({ url: 'dashboard.html' });
+            }
+            sendResponse({ success: true });
+        });
+        return true;
+    }
 });
 
 // Hot reload for development
@@ -213,4 +226,4 @@ if (CONFIG.DEV_MODE) {
     connectHotReload();
 }
 
-console.log('Linguist Pro background service worker loaded');
+console.log('LingoContext background service worker loaded');
