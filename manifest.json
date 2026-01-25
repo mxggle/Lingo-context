@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "LingoContext",
+    "name": "LingoContext — Context-Aware AI Translator",
     "version": "1.0.0",
-    "description": "Instant context, grammar, and pronunciation for English/Japanese learners using AI",
+    "description": "Instant context, grammar, and pronunciation for language learners using AI",
     "permissions": [
         "tts",
         "storage",

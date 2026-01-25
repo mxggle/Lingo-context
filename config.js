@@ -19,7 +19,7 @@ export const CONFIG = {
   CONTEXT_LENGTH: 150, // Characters of surrounding context to include
 
   // Development
-  DEV_MODE: true, // Set to false in production
+  DEV_MODE: false, // Set to false in production
 };
 
 // Get config value from storage or use default
