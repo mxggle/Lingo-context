@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linguist Pro - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #f8fafc;
+        }
+
+        p.subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-top: 8px;
+        }
+
+        .stat-sub {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .words-section h2 {
+            font-size: 18px;
+            color: #f8fafc;
+            margin-bottom: 20px;
+        }
+
+        .words-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .word-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            display: grid;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .word-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .word-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .word-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .word-lang {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: rgba(148, 163, 184, 0.1);
+            color: #94a3b8;
+        }
+
+        .word-meaning {
+            color: #38bdf8;
+            font-size: 15px;
+        }
+
+        .word-context {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 8px;
+            font-style: italic;
+            border-left: 2px solid rgba(148, 163, 184, 0.2);
+            padding-left: 10px;
+        }
+
+        .word-meta {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .loading,
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .error {
+            color: #f87171;
+        }
+
+        button.refresh-btn {
+            background: transparent;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        button.refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Dashboard</h1>
+                <p class="subtitle">Usage Statistics & Saved Vocabulary</p>
+            </div>
+            <button id="refreshBtn" class="refresh-btn">Refresh Data</button>
+        </header>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Saved Words</div>
+                <div class="stat-value" id="totalWords">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">AI Requests</div>
+                <div class="stat-value" id="totalRequests">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Est. Cost</div>
+                <div class="stat-value" id="totalCost">-</div>
+                <div class="stat-sub">Based on token usage</div>
+            </div>
+        </div>
+
+        <div class="words-section">
+            <h2>Recent Vocabulary</h2>
+            <div id="wordsList" class="words-list">
+                <div class="loading">Loading data...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js" type="module"></script>
+</body>
+
+</html>
