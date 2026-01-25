@@ -1,6 +1,6 @@
 # LingoContext 🌐
 
-**LingoContext** (formerly Word Cursor) is a powerful Chrome Extension designed for language learners (English/Japanese). It provides instant, context-aware definitions, grammar explanations, and pronunciation guides using Google's **Gemini AI** and browser-native Text-to-Speech.
+**LingoContext** is a powerful Chrome Extension designed for language learners (English/Japanese). It provides instant, context-aware definitions, grammar explanations, and pronunciation guides using Google's **Gemini AI** and browser-native Text-to-Speech.
 
 It comes with a full-featured **Dashboard** to track your vocabulary, view usage statistics, and manage your learning history.
 
