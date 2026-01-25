@@ -19,6 +19,9 @@ It comes with a full-featured **Dashboard** to track your vocabulary, view usage
 - **� Usage Tracking**: Monitors your API usage and token costs.
 - **🔐 Google Authentication**: Secure login to sync your data across devices.
 - **🐳 Docker Ready**: Full backend stack containerized for easy deployment.
+<img width="708" height="411" alt="image" src="https://github.com/user-attachments/assets/3f09385c-e3e7-4797-a26f-5e680fc08500" />
+<img width="2148" height="1548" alt="CleanShot 2026-01-25 at 14 10 00@2x" src="https://github.com/user-attachments/assets/db53c6dd-8116-4bcf-beb2-9a9383c52659" />
+
 
 ## 🛠️ Technology Stack
 
