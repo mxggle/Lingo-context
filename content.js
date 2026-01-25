@@ -307,6 +307,42 @@ function getPopupStyles() {
     .error-retry:hover {
       background: rgba(248, 113, 113, 0.2);
     }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: #1c1917;
+      color: #e7e5e4;
+      border-radius: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      z-index: 2147483647;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(120, 113, 108, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .toast-login-btn {
+      background: #fbbf24;
+      color: #1c1917;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .toast-login-btn:hover {
+      background: #fcd34d;
+      transform: translateY(-1px);
+    }
   `;
 }
 
@@ -733,25 +769,10 @@ async function saveWord(text, data) {
 
 // Show toast notification
 function showToast(message, action = null) {
+  if (!shadowRoot) return;
+
   const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    background: #1c1917;
-    color: #e7e5e4;
-    border-radius: 10px;
-    font-family: -apple-system, sans-serif;
-    font-size: 14px;
-    z-index: 2147483647;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    border: 1px solid rgba(120, 113, 108, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    animation: slideUp 0.3s ease-out;
-  `;
+  toast.className = 'toast';
 
   const text = document.createElement('span');
   text.textContent = message;
@@ -760,28 +781,18 @@ function showToast(message, action = null) {
   if (action === 'login') {
     const btn = document.createElement('button');
     btn.textContent = 'Login';
-    btn.style.cssText = `
-      background: #4285F4;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-    `;
+    btn.className = 'toast-login-btn';
     btn.onclick = () => {
-      // Content scripts can't create tabs, so ask background script to do it
       chrome.runtime.sendMessage({ type: 'OPEN_LOGIN' });
       toast.remove();
     };
     toast.appendChild(btn);
   }
 
-  document.body.appendChild(toast);
+  shadowRoot.appendChild(toast);
 
   setTimeout(() => {
-    if (document.body.contains(toast)) {
+    if (toast.parentElement) {
       toast.remove();
     }
   }, 5000);
