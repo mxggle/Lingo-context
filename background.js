@@ -4,6 +4,15 @@
 import { CONFIG, getConfig } from './config.js';
 import { saveWord } from './db-hook.js';
 
+// FORCE RESET CONFIG ON STARTUP if it's localhost (migration fix)
+chrome.runtime.onInstalled.addListener(async () => {
+    const stored = await chrome.storage.local.get('BACKEND_URL');
+    if (stored.BACKEND_URL && stored.BACKEND_URL.includes('localhost')) {
+        console.log('Detected localhost config, clearing to force default...');
+        await chrome.storage.local.remove('BACKEND_URL');
+    }
+});
+
 // System instruction for Gemini to return JSON
 const SYSTEM_INSTRUCTION = `You are a language learning assistant. Analyze text selections and return ONLY valid JSON in this exact format:
 {
@@ -26,7 +35,8 @@ async function handleGeminiRequest(text, context, mode, targetLanguage) {
             const response = await fetch(`${backendUrl}/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, context, mode, targetLanguage })
+                body: JSON.stringify({ text, context, mode, targetLanguage }),
+                credentials: 'include'
             });
 
             if (!response.ok) {

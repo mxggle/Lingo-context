@@ -10,3 +10,4 @@ coverage
 postgres-data
 mysql-data
 pr.md
+.vercel

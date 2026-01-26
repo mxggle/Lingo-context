@@ -3,7 +3,7 @@
 
 export const CONFIG = {
   // Backend Configuration (Required for AI and Saving)
-  BACKEND_URL: 'http://localhost:3000/api', // Default to local backend
+  BACKEND_URL: 'https://lingo-context-api.vercel.app/api', // Default to local backend
 
   // Legacy/Direct mode (Optional fallback if no backend)
   GEMINI_API_KEY: '',

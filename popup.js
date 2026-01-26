@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, getConfig } from './config.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const enabledToggle = document.getElementById('enabled');
@@ -58,28 +58,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userAvatar = document.getElementById('userAvatar');
 
     if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            chrome.tabs.create({ url: `${CONFIG.BACKEND_URL.replace('/api', '')}/auth/google` });
+        loginBtn.addEventListener('click', async () => {
+            const backendUrl = await getConfig('BACKEND_URL');
+            chrome.tabs.create({ url: `${backendUrl.replace('/api', '')}/auth/google` });
         });
     }
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
+            // Clear local storage auth
+            await chrome.storage.local.remove(['LINGOCONTEXT_USER', 'LINGOCONTEXT_LOGGED_IN']);
+
+            const backendUrl = await getConfig('BACKEND_URL');
             try {
-                const res = await fetch(`${CONFIG.BACKEND_URL.replace('/api', '')}/auth/logout`);
-                updateAuthUI();
+                await fetch(`${backendUrl.replace('/api', '')}/auth/logout`, {
+                    credentials: 'include'
+                });
             } catch (e) {
-                console.error('Logout failed', e);
+                console.error('Logout request failed', e);
             }
+            updateAuthUI();
         });
     }
 
     async function updateAuthUI() {
+        // First check local storage (set by content script on success page)
+        const stored = await chrome.storage.local.get(['LINGOCONTEXT_USER', 'LINGOCONTEXT_LOGGED_IN']);
+
+        if (stored.LINGOCONTEXT_LOGGED_IN && stored.LINGOCONTEXT_USER) {
+            const user = stored.LINGOCONTEXT_USER;
+            authSection.style.display = 'none';
+            userInfo.style.display = 'block';
+            userName.textContent = user.display_name || 'User';
+            userEmail.textContent = user.email;
+            if (user.avatar_url) {
+                userAvatar.src = user.avatar_url;
+                userAvatar.style.display = 'block';
+            }
+            return;
+        }
+
+        // Fallback: try to check via backend (may not work due to cookie issues)
+        const backendUrl = await getConfig('BACKEND_URL');
         try {
-            const res = await fetch(`${CONFIG.BACKEND_URL}/user`);
+            const res = await fetch(`${backendUrl}/user`, {
+                credentials: 'include'
+            });
             const data = await res.json();
 
             if (data.authenticated) {
+                // Store for future use
+                chrome.storage.local.set({
+                    LINGOCONTEXT_USER: data.user,
+                    LINGOCONTEXT_LOGGED_IN: true
+                });
+
                 authSection.style.display = 'none';
                 userInfo.style.display = 'block';
                 userName.textContent = data.user.display_name || 'User';

@@ -38,7 +38,7 @@ async function init() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             if (rootUrl) {
-                await fetch(`${rootUrl}/auth/logout`);
+                await fetch(`${rootUrl}/auth/logout`, { credentials: 'include' });
                 location.reload();
             }
         });
@@ -46,7 +46,7 @@ async function init() {
 
     // Check Auth and Toggle Views
     try {
-        const res = await fetch(`${backendUrl}/user`);
+        const res = await fetch(`${backendUrl}/user`, { credentials: 'include' });
         const data = await res.json();
 
         if (data.authenticated) {
@@ -109,7 +109,8 @@ function setupLanguagePreference(currentLanguage, backendUrl) {
             const response = await fetch(`${backendUrl}/user/preferences`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetLanguage: newLanguage })
+                body: JSON.stringify({ targetLanguage: newLanguage }),
+                credentials: 'include'
             });
 
             if (!response.ok) throw new Error('Failed to save preference');
@@ -150,7 +151,7 @@ async function loadData() {
 
 async function fetchStats(backendUrl) {
     try {
-        const response = await fetch(`${backendUrl}/stats`);
+        const response = await fetch(`${backendUrl}/stats`, { credentials: 'include' });
         if (!response.ok) throw new Error('Stats API Failed');
         const data = await response.json();
 
@@ -170,7 +171,7 @@ async function fetchWords(backendUrl) {
     list.innerHTML = '<div class="loading">Loading...</div>';
 
     try {
-        const response = await fetch(`${backendUrl}/words?limit=50`);
+        const response = await fetch(`${backendUrl}/words?limit=50`, { credentials: 'include' });
         if (!response.ok) throw new Error('Words API Failed');
         const words = await response.json();
 
@@ -270,7 +271,8 @@ async function deleteWord(wordId) {
 
     try {
         const response = await fetch(`${backendUrl}/words/${wordId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
         });
 
         if (!response.ok) {

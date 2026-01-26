@@ -6,7 +6,8 @@
         "dev": "node hot-reload.js",
         "build:css": "npx tailwindcss -i ./src/input.css -o ./styles.css --minify",
         "watch:css": "npx tailwindcss -i ./src/input.css -o ./styles.css --watch",
-        "package": "zip -r extension.zip . -x '*.git*' 'node_modules*' 'server*' 'mysql-data*' 'postgres-data*' '*.DS_Store*'"
+        "package": "npm run build && cd dist && zip -r ../extension.zip .",
+        "build": "rm -rf dist && mkdir dist && cp manifest.json background.js content.js popup.js dashboard.js config.js db-hook.js styles.css popup.html dashboard.html dist/ && cp -r icons dist/ && cp README.md dist/"
     },
     "devDependencies": {
         "tailwindcss": "^3.4.0"

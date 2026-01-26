@@ -22,6 +22,9 @@ let initialPopupY = 0;
 let isExtensionEnabled = true;
 
 function init() {
+  // Check for auth data from success page (for login flow)
+  checkForAuthData();
+
   // Check enabled state
   chrome.storage.local.get(['EXTENSION_ENABLED'], (result) => {
     isExtensionEnabled = result.EXTENSION_ENABLED !== false;
@@ -40,6 +43,27 @@ function init() {
   createPopup();
   setupEventListeners();
   console.log('LingoContext content script loaded');
+}
+
+// Check for auth data embedded in the page (from /auth/success)
+function checkForAuthData() {
+  const authDataEl = document.getElementById('lingocontext-auth-data');
+  if (authDataEl) {
+    try {
+      const userData = JSON.parse(authDataEl.getAttribute('data-user'));
+      if (userData && userData.id) {
+        // Store user data in chrome.storage.local for popup/dashboard to use
+        chrome.storage.local.set({
+          LINGOCONTEXT_USER: userData,
+          LINGOCONTEXT_LOGGED_IN: true
+        }, () => {
+          console.log('LingoContext: Auth data saved from success page');
+        });
+      }
+    } catch (e) {
+      console.error('LingoContext: Failed to parse auth data', e);
+    }
+  }
 }
 
 // Create Shadow DOM popup

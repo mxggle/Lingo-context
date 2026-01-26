@@ -37,7 +37,8 @@ export async function saveWord(data) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -74,7 +75,7 @@ export async function getWords(options = {}) {
     const url = `${backendUrl}/words?${params.toString()}`;
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, { credentials: 'include' });
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -99,7 +100,8 @@ export async function deleteWord(id) {
 
     try {
         const response = await fetch(`${backendUrl}/words/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
         });
 
         if (!response.ok) {

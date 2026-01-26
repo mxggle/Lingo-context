@@ -9,6 +9,7 @@ const db = require('./db');
 const passport = require('./auth');
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Vercel)
 const PORT = process.env.PORT || 3000;
 
 // Session store options for MySQL
@@ -31,16 +32,28 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware to ensure cookies are sent as Secure on localhost (required for SameSite=None)
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV !== 'production' && !req.secure) {
+        // Trick express-session into thinking we are secure so it sends the Secure cookie
+        Object.defineProperty(req, 'secure', { value: true, writable: false });
+        // Or if that fails (as it's a getter), trust proxy logic:
+        req.headers['x-forwarded-proto'] = 'https';
+    }
+    next();
+});
+
 // Session Setup
 app.use(session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Required for trust proxy headers to work
     cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: process.env.NODE_ENV === 'production', // true if https
-        sameSite: 'lax' // 'none' if backend and frontend are on different domains (e.g. extension)
+        secure: true, // Always true for SameSite=None
+        sameSite: 'none' // Required for cross-site fetch
     }
 }));
 
@@ -73,6 +86,15 @@ app.get('/auth/google/callback',
 );
 
 app.get('/auth/success', (req, res) => {
+    // Get user data if authenticated
+    const user = req.isAuthenticated() ? req.user : null;
+    const userData = user ? JSON.stringify({
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        avatar_url: user.avatar_url
+    }) : 'null';
+
     res.send(`
         <!DOCTYPE html>
         <html lang="en">
@@ -185,6 +207,9 @@ app.get('/auth/success', (req, res) => {
             </style>
         </head>
         <body>
+            <!-- User data for extension to pick up -->
+            <div id="lingocontext-auth-data" data-user='${userData.replace(/'/g, "&#39;")}'></div>
+            
             <div class="container">
                 <div class="icon-wrapper">
                     <svg class="checkmark" viewBox="0 0 52 52">
