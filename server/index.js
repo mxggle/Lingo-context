@@ -24,11 +24,67 @@ const sessionStore = new MySQLStore(sessionStoreOptions, db.pool);
 // Initialize Database Schema
 db.initializeDatabase();
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 // Middleware
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+    : [
+        'http://localhost:3000',
+        'https://lingo-context-api.vercel.app'
+    ];
+
+// Helper to check if origin is allowed
+const isAllowedOrigin = (origin) => {
+    if (!origin) return false;
+    if (ALLOWED_ORIGINS.includes(origin)) return true;
+    // For development/flexibility, we currently allow any chrome-extension.
+    // IN PRODUCTION: Replace this with strict ID checking (commented reference above)
+    return origin.startsWith('chrome-extension://');
+};
+
 app.use(cors({
-    origin: true, // Allow all origins for extension (or configure specific chrome-extension:// origins)
-    credentials: true // Important for cookies (sessions)
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (isAllowedOrigin(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
 }));
+
+// CSRF Protection Middleware for mutating requests
+app.use((req, res, next) => {
+    // Skip for non-mutating methods
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        return next();
+    }
+
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+
+    // effectiveOrigin is the origin we validate against
+    let effectiveOrigin = origin;
+    if (!effectiveOrigin && referer) {
+        try {
+            effectiveOrigin = new URL(referer).origin;
+        } catch (e) {
+            // Invalid referer URL
+        }
+    }
+
+    if (effectiveOrigin && isAllowedOrigin(effectiveOrigin)) {
+        return next();
+    }
+
+    console.warn(`Blocked CSRF attempt from: Origin=${origin}, Referer=${referer}`);
+    return res.status(403).json({ error: 'CSRF Check Failed: Origin not allowed' });
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
