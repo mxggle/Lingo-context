@@ -9,8 +9,17 @@ const db = require('./db');
 const passport = require('./auth');
 
 const app = express();
+const path = require('path');
 app.set('trust proxy', 1); // Trust first proxy (Vercel)
 const PORT = process.env.PORT || 3000;
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Explicit route for clean /privacy URL
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
 
 // Session store options for MySQL
 const sessionStoreOptions = {
