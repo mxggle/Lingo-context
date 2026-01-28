@@ -1,6 +1,6 @@
 {
     "name": "lingo-context",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "Chrome Extension for English/Japanese learners",
     "scripts": {
         "dev": "node hot-reload.js",

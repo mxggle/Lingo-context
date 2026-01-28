@@ -9,6 +9,7 @@ const CONFIG = {
 
 // State management
 let popup = null;
+let triggerIcon = null;
 let shadowRoot = null;
 let isLoading = false;
 let currentSelection = null;
@@ -82,6 +83,19 @@ function createPopup() {
   popup.id = 'lingo-context-popup';
   popup.className = 'popup hidden';
   shadowRoot.appendChild(popup);
+
+  // Create trigger icon
+  triggerIcon = document.createElement('div');
+  triggerIcon.id = 'lingo-context-trigger';
+  triggerIcon.className = 'trigger-icon hidden';
+  // Simple sparkle/AI icon
+  triggerIcon.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-opacity="0.5" stroke-width="1.5"></path>
+      <circle cx="12" cy="12" r="4" fill="#fbbf24" stroke="none"></circle>
+    </svg>
+  `;
+  shadowRoot.appendChild(triggerIcon);
 
   document.body.appendChild(host);
 }
@@ -367,6 +381,41 @@ function getPopupStyles() {
       background: #fcd34d;
       transform: translateY(-1px);
     }
+
+    .trigger-icon {
+      position: fixed;
+      z-index: 2147483647;
+      width: 36px;
+      height: 36px;
+      background: #1c1917;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      border-radius: 50%;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fbbf24;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    .trigger-icon.visible {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .trigger-icon:hover {
+      transform: scale(1.1);
+      background: #292524;
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+      border-color: #fbbf24;
+    }
+    
+    .trigger-icon.hidden {
+      display: none;
+    }
   `;
 }
 
@@ -383,8 +432,11 @@ function setupEventListeners() {
       return; // Don't close if clicking inside our extension
     }
 
-    // Check if popup exists and is visible
-    if (popup && !popup.classList.contains('hidden')) {
+    // Check if popup or trigger icon exists and is visible
+    const isPopupVisible = popup && !popup.classList.contains('hidden');
+    const isTriggerVisible = triggerIcon && !triggerIcon.classList.contains('hidden');
+
+    if (isPopupVisible || isTriggerVisible) {
       // Small delay to allow text selection inside popup
       setTimeout(() => {
         const selection = window.getSelection();
@@ -393,7 +445,11 @@ function setupEventListeners() {
           return;
         }
         // If no selection and click was outside, hide popup
-        if (!popup.contains(e.target)) {
+        // Note: we check both popup and triggerIcon containment
+        const hitPopup = popup && popup.contains(e.target);
+        const hitTrigger = triggerIcon && triggerIcon.contains(e.target);
+
+        if (!hitPopup && !hitTrigger) {
           hidePopup();
         }
       }, 10);
@@ -486,8 +542,9 @@ function handleSelection(e) {
   }
 
   // Position and show popup
+  // Position and show trigger icon instead of popup immediately
   const rect = selection.getRangeAt(0).getBoundingClientRect();
-  showPopup(rect, text, mode);
+  showTriggerIcon(rect, text, mode);
 }
 
 // Get surrounding context for better analysis
@@ -518,6 +575,52 @@ function getSurroundingContext(selection) {
   } catch (e) {
     return selection.toString();
   }
+}
+
+// Show trigger icon near selection
+function showTriggerIcon(rect, text, mode) {
+  if (!triggerIcon) return;
+
+  triggerIcon.classList.remove('hidden');
+  // Force reflow for animation
+  void triggerIcon.offsetWidth;
+  triggerIcon.classList.add('visible');
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const ICON_SIZE = 36;
+  const GAP = 10;
+
+  // Position to the right of the end of selection
+  let left = rect.right + GAP;
+  let top = rect.top + (rect.height / 2) - (ICON_SIZE / 2); // Center vertically relative to line
+
+  // Create a new clone to handle clean event listeners
+  const newIcon = triggerIcon.cloneNode(true);
+  triggerIcon.parentNode.replaceChild(newIcon, triggerIcon);
+  triggerIcon = newIcon;
+
+  // Adjust if off screen
+  if (left + ICON_SIZE > viewportWidth) {
+    // Attempt to put it below
+    left = rect.right - ICON_SIZE;
+    top = rect.bottom + GAP;
+  }
+
+  // Ensure it's not off-screen top/bottom
+  if (top < GAP) top = GAP;
+  if (top + ICON_SIZE > viewportHeight - GAP) top = viewportHeight - ICON_SIZE - GAP;
+
+  triggerIcon.style.left = `${left}px`;
+  triggerIcon.style.top = `${top}px`;
+
+  triggerIcon.onclick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    triggerIcon.classList.remove('visible');
+    triggerIcon.classList.add('hidden');
+    showPopup(rect, text, mode);
+  };
 }
 
 // Show popup at selection position with smart edge detection
@@ -823,9 +926,14 @@ function showToast(message, action = null) {
 }
 
 // Hide popup
+// Hide popup
 function hidePopup() {
   if (popup) {
     popup.classList.add('hidden');
+  }
+  if (triggerIcon) {
+    triggerIcon.classList.remove('visible');
+    triggerIcon.classList.add('hidden');
   }
   currentSelection = null;
 }

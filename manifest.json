@@ -1,13 +1,12 @@
 {
     "manifest_version": 3,
     "name": "LingoContext — Context-Aware AI Translator",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "Instant context, grammar, and pronunciation for language learners using AI",
     "permissions": [
         "tts",
         "storage",
-        "activeTab",
-        "scripting"
+        "activeTab"
     ],
     "host_permissions": [
         "<all_urls>"
