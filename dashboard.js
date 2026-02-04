@@ -188,6 +188,7 @@ async function fetchWords(backendUrl) {
                 <div class="word-header">
                     <span class="word-text">${escapeHtml(word.text)}</span>
                     <div style="display: flex; gap: 8px; align-items: center;">
+                        ${word.lookup_count > 1 ? `<span class="lookup-count">${word.lookup_count}x Lookups</span>` : ''}
                         <button class="play-audio-btn" data-word-index="${index}" data-word-text="${escapeHtml(word.text)}" data-word-lang="${escapeHtml(word.language)}">
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
@@ -205,10 +206,9 @@ async function fetchWords(backendUrl) {
                 </div>
                 <div class="word-meaning">${escapeHtml(word.meaning)}</div>
                 ${word.grammar ? `<div class="word-sub">${escapeHtml(word.grammar)}</div>` : ''}
-                ${word.context ? `<div class="word-context">"${escapeHtml(word.context)}"</div>` : ''}
+                ${renderContexts(word.contexts, word.id)}
                 <div class="word-meta">
                     <span>${new Date(word.saved_at).toLocaleDateString()}</span>
-                    ${word.url ? `<a href="${word.url}" target="_blank" style="color: inherit;">Source</a>` : ''}
                 </div>
             </div>
         `).join('');
@@ -219,6 +219,44 @@ async function fetchWords(backendUrl) {
         console.error(e);
         list.innerHTML = `<div class="error">Failed to load words. Is the backend running?</div>`;
     }
+}
+
+// Render contexts with fold/expand functionality
+function renderContexts(contexts, wordId) {
+    if (!contexts || contexts.length === 0) return '';
+
+    const firstContext = contexts[0];
+    const remainingCount = contexts.length - 1;
+
+    let html = `<div class="contexts-wrapper">`;
+
+    // Show first (most recent) context
+    if (firstContext.context) {
+        html += `<div class="word-context">"${escapeHtml(firstContext.context)}"</div>`;
+    }
+    if (firstContext.url) {
+        html += `<a href="${escapeHtml(firstContext.url)}" target="_blank" class="context-source">Source</a>`;
+    }
+
+    // Show "and X more" if there are additional contexts
+    if (remainingCount > 0) {
+        html += `<div class="context-more" data-word-id="${wordId}" data-original-text="...and ${remainingCount} more context${remainingCount > 1 ? 's' : ''}">...and ${remainingCount} more context${remainingCount > 1 ? 's' : ''}</div>`;
+        html += `<div class="contexts-hidden" id="contexts-${wordId}">`;
+        contexts.slice(1).forEach(ctx => {
+            if (ctx.context) {
+                html += `<div class="context-item">`;
+                html += `<div class="word-context">"${escapeHtml(ctx.context)}"</div>`;
+                if (ctx.url) {
+                    html += `<a href="${escapeHtml(ctx.url)}" target="_blank" class="context-source">Source</a>`;
+                }
+                html += `</div>`;
+            }
+        });
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
 }
 
 function showError(msg) {
@@ -256,6 +294,22 @@ function setupEventListeners() {
             // Confirm deletion
             if (confirm(`Are you sure you want to delete "${wordText}"?`)) {
                 await deleteWord(wordId);
+            }
+        });
+    });
+
+    // Setup context expand/collapse buttons
+    const contextMoreButtons = document.querySelectorAll('.context-more');
+    contextMoreButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wordId = btn.getAttribute('data-word-id');
+            const hiddenContexts = document.getElementById(`contexts-${wordId}`);
+            const originalText = btn.getAttribute('data-original-text');
+
+            if (hiddenContexts) {
+                const isExpanded = hiddenContexts.classList.toggle('expanded');
+                btn.textContent = isExpanded ? 'Show less' : originalText;
             }
         });
     });
@@ -341,18 +395,28 @@ function exportVocabulary() {
         return;
     }
 
-    // Create CSV content
-    const headers = ['Text', 'Language', 'Meaning', 'Grammar', 'Context', 'URL', 'Saved Date'];
+    // Create CSV content with updated headers
+    const headers = ['Text', 'Language', 'Meaning', 'Grammar', 'Lookup Count', 'Contexts', 'Saved Date'];
     const csvRows = [headers.join(',')];
 
     allWords.forEach(word => {
+        // Combine all contexts into a single string
+        const contextsStr = (word.contexts || [])
+            .map(ctx => {
+                let str = ctx.context || '';
+                if (ctx.url) str += ` (${ctx.url})`;
+                return str;
+            })
+            .filter(s => s)
+            .join(' | ');
+
         const row = [
             escapeCSV(word.text),
             escapeCSV(word.language),
             escapeCSV(word.meaning),
             escapeCSV(word.grammar || ''),
-            escapeCSV(word.context || ''),
-            escapeCSV(word.url || ''),
+            escapeCSV(String(word.lookup_count || 1)),
+            escapeCSV(contextsStr),
             escapeCSV(new Date(word.saved_at).toLocaleString())
         ];
         csvRows.push(row.join(','));

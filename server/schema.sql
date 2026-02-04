@@ -17,11 +17,20 @@ CREATE TABLE IF NOT EXISTS words (
   text TEXT NOT NULL,
   meaning TEXT,
   grammar TEXT,
-  context TEXT,
-  language TEXT,
-  url TEXT,
+  language VARCHAR(100),
+  lookup_count INT DEFAULT 1,
   saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Table to store multiple contexts per word
+CREATE TABLE IF NOT EXISTS word_contexts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  word_id INT NOT NULL,
+  context TEXT,
+  url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS usage_logs (

@@ -132,11 +132,22 @@ function getPopupStyles() {
     @keyframes slideUp {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(20px);
       }
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-10px);
       }
     }
 
@@ -362,7 +373,12 @@ function getPopupStyles() {
       display: flex;
       align-items: center;
       gap: 12px;
-      animation: slideUp 0.3s ease-out;
+      animation: slideUp 0.3s ease-out forwards;
+      transition: opacity 0.3s ease-out;
+    }
+
+    .toast.fade-out {
+      animation: fadeOut 0.3s ease-in forwards;
     }
 
     .toast-login-btn {
@@ -765,7 +781,19 @@ function renderError(message) {
 
 // Render analysis result
 function renderResult(originalText, data, mode) {
-  const displayText = data.furigana || escapeHtml(originalText);
+  // Use original text by default to preserve spacing/formatting
+  let displayText = escapeHtml(originalText);
+
+  // Only use furigana version if it's Japanese or clearly contains Ruby tags
+  // This prevents issues where the AI might strip spaces from English text
+  if (data.furigana && (
+    data.language === 'ja' ||
+    data.source_language === 'ja' ||
+    data.furigana.includes('<ruby>')
+  )) {
+    displayText = data.furigana;
+  }
+
   const modeLabel = mode === 'word' ? 'Word Analysis' : 'Phrase Analysis';
 
   return `
@@ -859,7 +887,6 @@ function detectLanguage(text) {
 }
 
 // Save word to backend
-// Save word to backend
 async function saveWord(text, data) {
   try {
     const payload = {
@@ -886,7 +913,14 @@ async function saveWord(text, data) {
         showToast('Failed to save: ' + response.message);
       }
     } else {
-      showToast('Word saved to Dashboard!');
+      // Show context-aware message based on action
+      if (response.action === 'lifted') {
+        showToast('Word updated!');
+      } else if (response.action === 'context_added') {
+        showToast('New context added!');
+      } else {
+        showToast('Word saved to Dashboard!');
+      }
     }
   } catch (error) {
     showToast('Error saving word');
@@ -918,11 +952,15 @@ function showToast(message, action = null) {
 
   shadowRoot.appendChild(toast);
 
+  // Auto-remove after 4 seconds with fade out
   setTimeout(() => {
-    if (toast.parentElement) {
-      toast.remove();
-    }
-  }, 5000);
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 300); // Wait for fade-out animation
+  }, 4000);
 }
 
 // Hide popup
