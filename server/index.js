@@ -357,7 +357,7 @@ app.post('/api/analyze', ensureAuthenticated, async (req, res) => {
         return res.status(500).json({ error: 'Server configuration error: API Key missing' });
     }
 
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const systemInstruction = getSystemInstruction(targetLanguage);
