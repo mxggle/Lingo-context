@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Parse connection string or use default
+// Supports: mysql://user:p@ss$word@host:port/database
 function parseConnectionString(url) {
     if (!url) {
         return {
@@ -14,9 +15,9 @@ function parseConnectionString(url) {
         };
     }
 
-    const regex = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/;
-    const match = url.match(regex);
-
+    // Use regex that handles special chars in passwords (e.g. $, ?, @)
+    // Format: mysql://user:password@host:port/database
+    const match = url.match(/^mysql:\/\/([^:]+):(.+)@([^:]+):(\d+)\/([^?]+)/);
     if (match) {
         return {
             host: match[3],
@@ -27,6 +28,7 @@ function parseConnectionString(url) {
         };
     }
 
+    console.error('Failed to parse DATABASE_URL — using defaults');
     return {
         host: 'localhost',
         port: 3306,
