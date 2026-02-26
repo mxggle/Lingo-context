@@ -135,6 +135,8 @@ function calculateCost(promptTokens, completionTokens, model) {
     return inputCost + outputCost;
 }
 
+const { fetchWithRetry } = require('./fetchWithRetry');
+
 // Auth Routes
 app.get('/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
@@ -364,7 +366,7 @@ app.post('/api/analyze', ensureAuthenticated, async (req, res) => {
     const prompt = generatePrompt(text, context, targetLanguage);
 
     try {
-        const response = await fetch(apiUrl, {
+        const response = await fetchWithRetry(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -382,8 +384,16 @@ app.post('/api/analyze', ensureAuthenticated, async (req, res) => {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'Gemini API request failed');
+            const error = await response.json().catch(() => ({}));
+            const errMsg = error.error?.message || 'Gemini API request failed';
+            if (response.status === 429) {
+                return res.status(429).json({
+                    error: true,
+                    message: 'AI service is busy. Please try again in a few seconds.',
+                    retryable: true
+                });
+            }
+            throw new Error(errMsg);
         }
 
         const data = await response.json();

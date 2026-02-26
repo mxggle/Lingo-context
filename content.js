@@ -731,12 +731,14 @@ async function analyzeText(text, context, mode) {
 
     if (response.error) {
       popup.innerHTML = renderError(response.message);
+      setupErrorActions();
     } else {
       popup.innerHTML = renderResult(text, response, mode);
       setupPopupActions(response);
     }
   } catch (error) {
     popup.innerHTML = renderError(error.message);
+    setupErrorActions();
   } finally {
     isLoading = false;
   }
@@ -837,6 +839,20 @@ function renderResult(originalText, data, mode) {
       </div>
     </div>
   `;
+}
+
+// Setup error popup actions (retry + close)
+function setupErrorActions() {
+  popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
+
+  popup.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
+    if (currentSelection) {
+      const wordCount = currentSelection.text.split(/\s+/).length;
+      const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
+      popup.innerHTML = renderLoading();
+      analyzeText(currentSelection.text, currentSelection.context, mode);
+    }
+  });
 }
 
 // Setup popup button actions
