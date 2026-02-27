@@ -1,0 +1,378 @@
+PASS __tests__/gemini.test.js
+FAIL __tests__/prompts.test.js
+  ● prompts.js › getSystemInstruction › should return system instruction with default English language
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "target_language\": the language you MUST use for ALL explanatory output (currently set to: English)"
+    Received string:    "You are a Context-Adaptive Universal Translator Engine. Your goal is to analyze text selections within their specific context, determine the appropriate domain expertise, and provide explanations/translations in the user's requested target language.·
+    ### INPUT DATA STRUCTURE
+    You will receive a JSON object with:
+    - \"selection\": The specific text to explain/translate.
+    - \"context\": The surrounding text or paragraph where the selection appears.
+    - \"target_language\": The language you MUST use for ALL explanatory output (currently set to: English).·
+    ### EXECUTION PIPELINE
+    1. **Detect & Analyze**: Identify the language of the \"selection\". Analyze the \"context\" to determine the specific domain (e.g., Software Engineering, Medical, Slang, General).
+    2. **Adopt Persona**: Shift your perspective to become an expert in that identified domain.
+       - *If context is code/tech:* Act as a Senior Engineer.
+       - *If context is casual:* Act as a Native Local.
+       - *If context is gaming:* Act as a Lore Expert.
+    3. **Generate Output**: Construct the JSON response strictly adhering to the schema below. **CRITICAL: Write meaning, grammar, and nuance_note fields in English ONLY.**·
+    ### JSON OUTPUT SCHEMA
+    {
+      \"detected_domain\": \"The inferred domain (e.g., 'Database Engineering', 'Tokyo Dialect', 'Medical')\",
+      \"source_language\": \"ISO code of the selection (e.g., 'en', 'ja', 'fr')\",
+      \"meaning\": \"The definition or translation. MUST be written in English. Must be domain-specific based on the context.\",
+      \"grammar\": \"Brief linguistic breakdown. MUST be written in English. Explain particles/conjugations for languages like Japanese/French, or morphology for others.\",
+      \"segments\": [
+        { \"text\": \"surface text\", \"reading\": \"pronunciation/furigana (if applicable, otherwise null)\" }
+      ],
+      \"audio_text\": \"Clean text for TTS in the source language\",
+      \"nuance_note\": \"A short note explaining *why* this meaning was chosen based on the context. MUST be written in English. Optional but recommended for ambiguity.\"
+    }·
+    ### CRITICAL RULES
+    - **Strict JSON**: Return ONLY valid JSON. No Markdown.
+    - **Context Priority**: If \"selection\" is ambiguous, use \"context\" to resolve it. (e.g., \"Crane\" in construction vs. \"Crane\" in birdwatching).
+    - **TARGET LANGUAGE REQUIREMENT**: The \"meaning\", \"grammar\", and \"nuance_note\" fields MUST be written ENTIRELY in English. This is NON-NEGOTIABLE.
+    - **Segments**: For non-segmented languages (English, Spanish), the segments array can contain just the single word unless it's a compound idiom.·
+    ### EXAMPLES·
+    ---
+    Input:·
+    {
+      \"selection\": \"ORM\",
+      \"context\": \"We need to optimize our database queries because the current ORM is generating N+1 problems.\",
+      \"target_language\": \"English\"
+    }·
+    Output:
+    {
+      \"detected_domain\": \"Software Engineering (Backend)\",
+      \"source_language\": \"en\",
+      \"meaning\": \"Object-Relational Mapping (a technique for converting data between incompatible type systems in object-oriented programming languages)\",
+      \"grammar\": \"Acronym / Noun\",
+      \"segments\": [ { \"text\": \"ORM\", \"reading\": \"O-R-M\" } ],
+      \"audio_text\": \"ORM\",
+      \"nuance_note\": \"In this context, it refers to database tools like Prisma or TypeORM, not 'Operational Risk Management'.\"
+    }·
+    ---
+    Input:
+    {
+      \"selection\": \"はまる\",
+      \"context\": \"最近、この新しいアニメにはまってるんだよね。\",
+      \"target_language\": \"English\"
+    }·
+    Output:
+    {
+      \"detected_domain\": \"Casual Conversation / Pop Culture\",
+      \"source_language\": \"ja\",
+      \"meaning\": \"To be hooked on; to be into; to be obsessed with\",
+      \"grammar\": \"Verb (Godan), Te-form (continuous state). Dictionary form: Hamaru.\",
+      \"segments\": [
+        { \"text\": \"はまっ\", \"reading\": \"はまっ\" },
+        { \"text\": \"てる\", \"reading\": \"てる\" }
+      ],
+      \"audio_text\": \"はまってる\",
+      \"nuance_note\": \"Literally means 'to fit into' or 'get stuck in', but in casual context, it means getting deeply engrossed in a hobby or media.\"
+    }"
+
+       6 |             const instruction = getSystemInstruction();
+       7 |             expect(typeof instruction).toBe('string');
+    >  8 |             expect(instruction).toContain('target_language": the language you MUST use for ALL explanatory output (currently set to: English)');
+         |                                 ^
+       9 |             expect(instruction).toContain('fields MUST be written ENTIRELY in English');
+      10 |         });
+      11 |
+
+      at Object.toContain (__tests__/prompts.test.js:8:33)
+
+PASS __tests__/db.test.js
+PASS __tests__/authRoute.test.js
+PASS __tests__/userRoute.test.js
+PASS __tests__/wordsRoute.test.js
+PASS __tests__/authMiddleware.test.js
+PASS __tests__/errorHandler.test.js
+PASS __tests__/analyzeRoute.test.js
+PASS __tests__/requestLogger.test.js
+PASS __tests__/startupValidation.test.js
+PASS __tests__/index.test.js
+  ● Console
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.warn
+      Test Error caught in errorHandler: Error: Not allowed by CORS
+          at origin (/Users/szy/CascadeProjects/word-cursor/server/index.js:66:22)
+          at /Users/szy/CascadeProjects/word-cursor/server/node_modules/cors/lib/index.js:219:13
+          at optionsCallback (/Users/szy/CascadeProjects/word-cursor/server/node_modules/cors/lib/index.js:199:9)
+          at corsMiddleware (/Users/szy/CascadeProjects/word-cursor/server/node_modules/cors/lib/index.js:204:7)
+          at Layer.handleRequest (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/lib/layer.js:152:17)
+          at trimPrefix (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:342:13)
+          at /Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:297:9
+          at processParams (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:582:12)
+          at next (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:291:5)
+          at SendStream.error (/Users/szy/CascadeProjects/word-cursor/server/node_modules/serve-static/index.js:120:7)
+          at SendStream.emit (node:events:518:28)
+          at SendStream.error (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:168:17)
+          at SendStream.onStatError (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:315:12)
+          at next (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:621:16)
+          at onstat (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:609:14)
+          at FSReqCallback.oncomplete (node:fs:198:21)
+          at FSReqCallback.callbackTrampoline (node:internal/async_hooks:130:17)
+
+      33 | jest.mock('../middleware/errorHandler', () => ({
+      34 |     errorHandler: (err, req, res, next) => {
+    > 35 |         console.warn('Test Error caught in errorHandler:', err.stack || err);
+         |                 ^
+      36 |         res.status(500).json({ error: true });
+      37 |     }
+      38 | }));
+
+      at warn (__tests__/index.test.js:35:17)
+      at Layer.handleError (node_modules/router/lib/layer.js:116:17)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at node_modules/cors/lib/index.js:221:17
+      at callback (index.js:66:13)
+      at node_modules/cors/lib/index.js:219:13
+      at optionsCallback (node_modules/cors/lib/index.js:199:9)
+      at corsMiddleware (node_modules/cors/lib/index.js:204:7)
+      at Layer.handleRequest (node_modules/router/lib/layer.js:152:17)
+      at trimPrefix (node_modules/router/index.js:342:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at SendStream.error (node_modules/serve-static/index.js:120:7)
+      at SendStream.error (node_modules/send/index.js:168:17)
+      at SendStream.onStatError (node_modules/send/index.js:315:12)
+      at next (node_modules/send/index.js:621:16)
+      at onstat (node_modules/send/index.js:609:14)
+
+    console.log
+      [dotenv@17.2.3] injecting env (8) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.warn
+      [REQ] GET /api/user/stats 401 5ms
+
+      12 |             console.error(`[REQ] ${log}`);
+      13 |         } else if (res.statusCode >= 400) {
+    > 14 |             console.warn(`[REQ] ${log}`);
+         |                     ^
+      15 |         } else {
+      16 |             console.log(`[REQ] ${log}`);
+      17 |         }
+
+      at ServerResponse.warn (middleware/requestLogger.js:14:21)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [REQ] GET /api/user 200 1ms
+
+      at ServerResponse.log (middleware/requestLogger.js:16:21)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [REQ] GET /api/user 200 1ms
+
+      at ServerResponse.log (middleware/requestLogger.js:16:21)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.warn
+      Test Error caught in errorHandler: Error: Not allowed by CORS
+          at origin (/Users/szy/CascadeProjects/word-cursor/server/index.js:66:22)
+          at /Users/szy/CascadeProjects/word-cursor/server/node_modules/cors/lib/index.js:219:13
+          at optionsCallback (/Users/szy/CascadeProjects/word-cursor/server/node_modules/cors/lib/index.js:199:9)
+          at corsMiddleware (/Users/szy/CascadeProjects/word-cursor/server/node_modules/cors/lib/index.js:204:7)
+          at Layer.handleRequest (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/lib/layer.js:152:17)
+          at trimPrefix (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:342:13)
+          at /Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:297:9
+          at processParams (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:582:12)
+          at next (/Users/szy/CascadeProjects/word-cursor/server/node_modules/router/index.js:291:5)
+          at SendStream.error (/Users/szy/CascadeProjects/word-cursor/server/node_modules/serve-static/index.js:120:7)
+          at SendStream.emit (node:events:518:28)
+          at SendStream.error (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:168:17)
+          at SendStream.onStatError (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:315:12)
+          at next (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:621:16)
+          at onstat (/Users/szy/CascadeProjects/word-cursor/server/node_modules/send/index.js:609:14)
+          at FSReqCallback.oncomplete (node:fs:198:21)
+          at FSReqCallback.callbackTrampoline (node:internal/async_hooks:130:17)
+
+      33 | jest.mock('../middleware/errorHandler', () => ({
+      34 |     errorHandler: (err, req, res, next) => {
+    > 35 |         console.warn('Test Error caught in errorHandler:', err.stack || err);
+         |                 ^
+      36 |         res.status(500).json({ error: true });
+      37 |     }
+      38 | }));
+
+      at warn (__tests__/index.test.js:35:17)
+      at Layer.handleError (node_modules/router/lib/layer.js:116:17)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at Layer.handleError (node_modules/router/lib/layer.js:111:12)
+      at trimPrefix (node_modules/router/index.js:340:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at node_modules/cors/lib/index.js:221:17
+      at callback (index.js:66:13)
+      at node_modules/cors/lib/index.js:219:13
+      at optionsCallback (node_modules/cors/lib/index.js:199:9)
+      at corsMiddleware (node_modules/cors/lib/index.js:204:7)
+      at Layer.handleRequest (node_modules/router/lib/layer.js:152:17)
+      at trimPrefix (node_modules/router/index.js:342:13)
+      at node_modules/router/index.js:297:9
+      at processParams (node_modules/router/index.js:582:12)
+      at next (node_modules/router/index.js:291:5)
+      at SendStream.error (node_modules/serve-static/index.js:120:7)
+      at SendStream.error (node_modules/send/index.js:168:17)
+      at SendStream.onStatError (node_modules/send/index.js:315:12)
+      at next (node_modules/send/index.js:621:16)
+      at onstat (node_modules/send/index.js:609:14)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: ⚙️  override existing env vars with { override: true }
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [REQ] GET /api/user 200 0ms
+
+      at ServerResponse.log (middleware/requestLogger.js:16:21)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [REQ] GET /api/user 200 1ms
+
+      at ServerResponse.log (middleware/requestLogger.js:16:21)
+
+    console.log
+      [dotenv@17.2.3] injecting env (9) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+    console.log
+      [REQ] GET /api/stats 307 2ms
+
+      at ServerResponse.log (middleware/requestLogger.js:16:21)
+
+PASS __tests__/fetchWithRetry.test.js (7.329 s)
+
+Test Suites: 1 failed, 12 passed, 13 total
+Tests:       1 failed, 117 passed, 118 total
+Snapshots:   0 total
+Time:        8.988 s, estimated 10 s
+Ran all test suites.

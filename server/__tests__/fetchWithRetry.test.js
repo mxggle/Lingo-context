@@ -269,4 +269,15 @@ describe('fetchWithRetry', () => {
             expect(mockFetch.getCallCount()).toBe(3);
         });
     });
+
+    describe('default parameters', () => {
+        it('should use default fetch and parameters when no options provided', async () => {
+            const originalSetTimeout = global.setTimeout;
+            jest.spyOn(global, 'setTimeout').mockImplementation((fn, delay) => {
+                return originalSetTimeout(fn, 0);
+            });
+            await expect(fetchWithRetry('invalid-url')).rejects.toThrow();
+            global.setTimeout.mockRestore();
+        });
+    });
 });

@@ -45,7 +45,6 @@ const ALLOWED_EXTENSION_IDS = process.env.CHROME_EXTENSION_IDS
     : [];
 
 const isAllowedOrigin = (origin) => {
-    if (!origin) return false;
     if (ALLOWED_ORIGINS.includes(origin)) return true;
     if (origin.startsWith('chrome-extension://')) {
         if (ALLOWED_EXTENSION_IDS.length === 0) {
@@ -126,6 +125,7 @@ app.get('/api/stats', (req, res) => res.redirect(307, '/api/user/stats'));
 app.use(errorHandler);
 
 // --- Start server (local dev only) ---
+/* istanbul ignore if */
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Backend server running on http://localhost:${PORT}`);

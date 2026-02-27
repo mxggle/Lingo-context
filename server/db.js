@@ -58,9 +58,7 @@ async function initializeDatabase() {
             // Split schema by semicolons and execute each statement
             const statements = schema.split(';').filter(stmt => stmt.trim());
             for (const stmt of statements) {
-                if (stmt.trim()) {
-                    await connection.query(stmt);
-                }
+                await connection.query(stmt);
             }
             console.log('Database schema initialized');
         } finally {
