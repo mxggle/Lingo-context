@@ -77,12 +77,12 @@ async function loadLocaleData(langCode) {
   }
 }
 
-// Get translated string
+// Get translated string (returns '' if not loaded yet, so || fallbacks work)
 function getTransl(key) {
   if (currentLocaleData[key] && currentLocaleData[key].message) {
     return currentLocaleData[key].message;
   }
-  return key;
+  return '';
 }
 
 // Replace placeholders in string ($1, $2, etc)
