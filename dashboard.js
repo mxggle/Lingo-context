@@ -543,7 +543,59 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function setupDeleteModal() {
+    const modal = document.getElementById('deleteConfirmModal');
+    const closeBtn = document.getElementById('closeDeleteModalBtn');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+    const closeModal = () => {
+        modal.classList.remove('show');
+        pendingDeleteWordId = null;
+    };
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeModal);
+    }
+
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            if (pendingDeleteWordId && typeof pendingDeleteWordId === 'function') {
+                pendingDeleteWordId();
+            }
+            closeModal();
+        });
+    }
+}
+
+function showDeleteConfirmModal(wordText, onConfirm) {
+    const modal = document.getElementById('deleteConfirmModal');
+    const message = document.getElementById('deleteConfirmMessage');
+
+    if (!modal) return;
+
+    const confirmTemplate = getTransl('deleteConfirm') || `Are you sure you want to delete "$1"?`;
+    message.textContent = processTranslPlaceholders(confirmTemplate, wordText);
+
+    pendingDeleteWordId = onConfirm;
+
+    modal.classList.add('show');
+}
+
+let pendingDeleteWordId = null;
+
 function setupEventListeners() {
+    setupDeleteModal();
     // Setup audio buttons
     const audioButtons = document.querySelectorAll('.play-audio-btn');
     audioButtons.forEach(btn => {
@@ -563,11 +615,9 @@ function setupEventListeners() {
             const wordId = btn.getAttribute('data-word-id');
             const wordText = btn.getAttribute('data-word-text');
 
-            // Confirm deletion
-            const confirmTemplate = getTransl('deleteConfirm') || `Are you sure you want to delete "$1"?`;
-            if (confirm(processTranslPlaceholders(confirmTemplate, wordText))) {
+            showDeleteConfirmModal(wordText, async () => {
                 await deleteWord(wordId);
-            }
+            });
         });
     });
 
