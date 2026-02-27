@@ -24,40 +24,8 @@ const SYSTEM_INSTRUCTION = `You are a language learning assistant. Analyze text 
 }
 Do not include any text outside the JSON object.`;
 
-// Handle Gemini API request
-// Handle Gemini API request (via Backend)
-async function handleGeminiRequest(text, context, mode, targetLanguage) {
-    const backendUrl = await getConfig('BACKEND_URL');
-
-    if (!backendUrl) {
-        return {
-            error: true,
-            message: 'Please start the backend server or configure the BACKEND_URL in settings.'
-        };
-    }
-
-    try {
-        const response = await fetch(`${backendUrl}/analyze`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, context, mode, targetLanguage }),
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || `Backend Error: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.warn('Backend request failed:', error);
-        return {
-            error: true,
-            message: error.message || 'Backend request failed. Please check your connection or start the backend server.'
-        };
-    }
-}
+// Handle Gemini API request (via Backend Streaming)
+// Replaced classic handleGeminiRequest with streaming logic inside onConnect listener.
 
 // Play TTS using chrome.tts API
 function playFreeTTS(text, lang = 'en') {
@@ -97,14 +65,82 @@ function playFreeTTS(text, lang = 'en') {
 
 
 
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'analyze-stream') {
+        port.onMessage.addListener(async (msg) => {
+            if (msg.type === 'START_ANALYZE_STREAM') {
+                try {
+                    const backendUrl = await getConfig('BACKEND_URL');
+                    if (!backendUrl) {
+                        port.postMessage({ error: true, message: 'Please start the backend server or configure the BACKEND_URL in settings.' });
+                        port.disconnect();
+                        return;
+                    }
+
+                    const response = await fetch(`${backendUrl}/analyze/stream`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: msg.text,
+                            context: msg.context,
+                            mode: msg.mode,
+                            targetLanguage: msg.targetLanguage
+                        }),
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json().catch(() => ({}));
+                        port.postMessage({ error: true, message: error.message || `Backend Error: ${response.status}` });
+                        port.disconnect();
+                        return;
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // Keep the incomplete line for the next chunk
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.replace('data: ', '').trim();
+                                if (!dataStr) continue;
+                                if (dataStr === '[DONE]') {
+                                    port.postMessage({ type: 'DONE' });
+                                } else {
+                                    try {
+                                        const parsed = JSON.parse(dataStr);
+                                        if (parsed.error) {
+                                            port.postMessage({ error: true, message: parsed.message });
+                                        } else if (parsed.text) {
+                                            port.postMessage({ type: 'CHUNK', text: parsed.text });
+                                        }
+                                    } catch (e) {
+                                        // Ignore incomplete JSON chunks from split
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    port.postMessage({ error: true, message: error.message || 'Stream connection failed' });
+                } finally {
+                    port.disconnect();
+                }
+            }
+        });
+    }
+});
+
 // Message listener for content script communication
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'ANALYZE_TEXT') {
-        handleGeminiRequest(message.text, message.context, message.mode, message.targetLanguage)
-            .then(result => sendResponse(result))
-            .catch(error => sendResponse({ error: true, message: error.message }));
-        return true; // Keep channel open for async response
-    }
 
     if (message.type === 'PLAY_TTS') {
         playFreeTTS(message.text, message.lang)

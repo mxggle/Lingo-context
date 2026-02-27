@@ -15,6 +15,7 @@ const { requestLogger } = require('./middleware/requestLogger');
 // Routes
 const authRoutes = require('./routes/auth');
 const analyzeRoutes = require('./routes/analyze');
+const analyzeStreamRoutes = require('./routes/analyzeStream');
 const wordsRoutes = require('./routes/words');
 const userRoutes = require('./routes/user');
 
@@ -114,6 +115,7 @@ db.initializeDatabase();
 // --- Routes ---
 app.use('/auth', authRoutes);
 app.use('/api/analyze', analyzeRoutes);
+app.use('/api/analyze/stream', analyzeStreamRoutes);
 app.use('/api/words', wordsRoutes);
 app.use('/api/user', userRoutes);
 

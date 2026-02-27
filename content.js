@@ -374,6 +374,37 @@ function getPopupStyles() {
       color: #a8a29e;
     }
 
+    /* Skeleton Loading Animation */
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+      100% {
+        background-position: 200% 0;
+      }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0.03) 25%, 
+        rgba(255, 255, 255, 0.08) 50%, 
+        rgba(255, 255, 255, 0.03) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+      border-radius: 4px;
+    }
+
+    .skeleton-line {
+      height: 14px;
+      margin-bottom: 8px;
+    }
+
+    .skeleton-line:last-child {
+      margin-bottom: 0;
+      width: 80%;
+    }
+
     .error {
       padding: 16px;
       text-align: center;
@@ -760,34 +791,115 @@ function showPopup(rect, text, mode) {
   });
 }
 
-// Analyze text with Gemini
-async function analyzeText(text, context, mode) {
-  isLoading = true;
+// Streaming helper: Extract partial string values from streaming JSON
+const STREAMING_KEYS = ['meaning', 'grammar', 'furigana', 'audio_text', 'language'];
+const STREAMING_REGEXES = {};
+for (const key of STREAMING_KEYS) {
+    STREAMING_REGEXES[key] = new RegExp('"' + key + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)');
+}
 
-  // The backend will use the user's preferred target language from their profile
-  // If not set, it defaults to English
-  // We don't pass targetLanguage here so the backend can use the user's preference
+function extractStreamingJson(str) {
+  const data = {};
+
+  for (const key of STREAMING_KEYS) {
+    const match = str.match(STREAMING_REGEXES[key]);
+    if (match) {
+      let val = match[1];
+      val = val.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      data[key] = val;
+    }
+  }
+  return data;
+}
+
+// Streaming helper: Update DOM with partial data
+function updateStreamingResult(data) {
+  const meaningEl = popup.querySelector('.meaning-content');
+  if (meaningEl && data.meaning) {
+    meaningEl.innerHTML = escapeHtml(data.meaning);
+  }
+
+  const grammarEl = popup.querySelector('.grammar-content');
+  if (grammarEl && data.grammar) {
+    grammarEl.innerHTML = escapeHtml(data.grammar);
+  }
+}
+
+// Analyze text with Gemini (streaming)
+function analyzeText(text, context, mode) {
+  isLoading = true;
+  let streamingText = '';
+
+  // Render initial skeleton popup
+  popup.innerHTML = renderResult(text, {}, mode, true);
+
+  // Setup initial actions (disabled save/listen while streaming)
+  const speakBtn = popup.querySelector('[data-action="speak"]');
+  const saveBtn = popup.querySelector('[data-action="save"]');
+  if (speakBtn) speakBtn.disabled = true;
+  if (saveBtn) saveBtn.disabled = true;
 
   try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'ANALYZE_TEXT',
+    const port = chrome.runtime.connect({ name: 'analyze-stream' });
+    let streamFinished = false;
+
+    port.postMessage({
+      type: 'START_ANALYZE_STREAM',
       text,
       context,
       mode
-      // targetLanguage is not passed - backend will use user's preference
     });
 
-    if (response.error) {
-      popup.innerHTML = renderError(response.message);
-      setupErrorActions();
-    } else {
-      popup.innerHTML = renderResult(text, response, mode);
-      setupPopupActions(response);
+    const handleMessage = (msg) => {
+      if (msg.error) {
+        popup.innerHTML = renderError(msg.message);
+        setupErrorActions();
+        isLoading = false;
+        streamFinished = true;
+        port.disconnect();
+        return;
+      }
+
+      if (msg.type === 'CHUNK') {
+        streamingText += msg.text;
+        const partialData = extractStreamingJson(streamingText);
+        updateStreamingResult(partialData);
+      } else if (msg.type === 'DONE') {
+        streamFinished = true;
+        finishStream();
+      }
+    };
+
+    port.onMessage.addListener(handleMessage);
+
+    port.onDisconnect.addListener(() => {
+      port.onMessage.removeListener(handleMessage);
+      if (isLoading && !streamFinished) {
+        finishStream();
+      }
+    });
+
+    function finishStream() {
+      isLoading = false;
+      try {
+        const fullData = JSON.parse(streamingText);
+        popup.innerHTML = renderResult(text, fullData, mode);
+        setupPopupActions(fullData);
+      } catch (e) {
+        // Fallback if final JSON is malformed
+        const partialData = extractStreamingJson(streamingText);
+
+        // Clean up visual loading state
+        if (speakBtn) speakBtn.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+
+        // Still setup actions with partial data
+        setupPopupActions(partialData);
+      }
     }
   } catch (error) {
     popup.innerHTML = renderError(error.message);
     setupErrorActions();
-  } finally {
     isLoading = false;
   }
 }
@@ -836,7 +948,7 @@ function renderError(message) {
 }
 
 // Render analysis result
-function renderResult(originalText, data, mode) {
+function renderResult(originalText, data, mode, isStreamingInit = false) {
   // Use original text by default to preserve spacing/formatting
   let displayText = escapeHtml(originalText);
 
@@ -859,6 +971,12 @@ function renderResult(originalText, data, mode) {
   const listenLabel = getTransl('listenBtn') || 'Listen';
   const saveLabel = getTransl('saveBtn') || 'Save';
 
+  const skeletonHtml = `
+    <div class="skeleton skeleton-line"></div>
+    <div class="skeleton skeleton-line"></div>
+    <div class="skeleton skeleton-line" style="width: 60%"></div>
+  `;
+
   return `
     <div class="popup-header">
       <span class="popup-title">${escapeHtml(modeLabel)}</span>
@@ -873,13 +991,13 @@ function renderResult(originalText, data, mode) {
       
       <div class="section">
         <div class="section-label">${escapeHtml(meaningLabel)}</div>
-        <div class="section-content meaning-content">${escapeHtml(data.meaning)}</div>
+        <div class="section-content meaning-content">${isStreamingInit ? skeletonHtml : escapeHtml(data.meaning)}</div>
       </div>
       
-      ${data.grammar ? `
+      ${(data.grammar || isStreamingInit) ? `
         <div class="section">
           <div class="section-label">${escapeHtml(grammarLabel)}</div>
-          <div class="section-content grammar-content">${escapeHtml(data.grammar)}</div>
+          <div class="section-content grammar-content">${isStreamingInit ? skeletonHtml : escapeHtml(data.grammar)}</div>
         </div>
       ` : ''}
       <div class="actions">
