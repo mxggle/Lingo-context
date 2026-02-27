@@ -1,5 +1,5 @@
 // Configuration for LingoContext
-// Update these values with your own API keys and endpoints
+// Update these values with your own backend endpoint
 
 export const CONFIG = {
   // Backend Configuration (Required for AI and Saving)
@@ -7,11 +7,6 @@ export const CONFIG = {
   // BACKEND_URL: 'http://localhost:3000/api',
   // Production
   BACKEND_URL: 'https://lingo-context-api.vercel.app/api',
-
-  // Legacy/Direct mode (Optional fallback if no backend)
-  GEMINI_API_KEY: '',
-  GEMINI_MODEL: 'gemini-2.0-flash-lite',
-  GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
 
   // TTS Configuration
   TTS_RATE: 0.9, // Slightly slower for learners

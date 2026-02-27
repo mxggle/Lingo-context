@@ -25,95 +25,36 @@ const SYSTEM_INSTRUCTION = `You are a language learning assistant. Analyze text 
 Do not include any text outside the JSON object.`;
 
 // Handle Gemini API request
-// Handle Gemini API request (via Backend or Direct)
+// Handle Gemini API request (via Backend)
 async function handleGeminiRequest(text, context, mode, targetLanguage) {
     const backendUrl = await getConfig('BACKEND_URL');
 
-    // 1. Try Backend Proxy (Preferred)
-    if (backendUrl) {
-        try {
-            const response = await fetch(`${backendUrl}/analyze`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, context, mode, targetLanguage }),
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.message || `Backend Error: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.warn('Backend request failed, falling back to direct API if configured:', error);
-            // Fallthrough to direct API
-        }
-    }
-
-    // 2. Direct API Fallback (Legacy/Dev)
-    const apiKey = await getConfig('GEMINI_API_KEY');
-
-    if (!apiKey) {
+    if (!backendUrl) {
         return {
             error: true,
-            message: 'Please start the backend server or set your Gemini API key in settings'
+            message: 'Please start the backend server or configure the BACKEND_URL in settings.'
         };
     }
 
-    const model = await getConfig('GEMINI_MODEL');
-    const apiUrl = `${CONFIG.GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`;
-
-    const prompt = mode === 'word'
-        ? `Analyze this word or short phrase: "${text}"\nContext: "${context}"\nProvide definition, grammar notes, and pronunciation.`
-        : `Analyze this sentence or phrase: "${text}"\nContext: "${context}"\nExplain the meaning, grammar structure, and provide pronunciation guide.`;
-
     try {
-        const response = await fetch(apiUrl, {
+        const response = await fetch(`${backendUrl}/analyze`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        role: 'user',
-                        parts: [{ text: SYSTEM_INSTRUCTION + '\n\n' + prompt }]
-                    }
-                ],
-                generationConfig: {
-                    temperature: 0.3,
-                    topK: 40,
-                    topP: 0.95,
-                    maxOutputTokens: 1024,
-                }
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, context, mode, targetLanguage }),
+            credentials: 'include'
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'API request failed');
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || `Backend Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!content) {
-            throw new Error('No response from Gemini');
-        }
-
-        // Parse the JSON response
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            throw new Error('Invalid response format');
-        }
-
-        return JSON.parse(jsonMatch[0]);
+        return await response.json();
     } catch (error) {
-        console.error('Gemini API error:', error);
+        console.warn('Backend request failed:', error);
         return {
             error: true,
-            message: error.message
+            message: error.message || 'Backend request failed. Please check your connection or start the backend server.'
         };
     }
 }
