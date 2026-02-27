@@ -382,6 +382,140 @@
                 transform: translateY(-10px);
             }
         }
+
+        /* Contribution Graph */
+        .contribution-section {
+            margin-bottom: 40px;
+        }
+
+        .graph-container {
+            background: rgba(41, 37, 36, 0.4);
+            border: 1px solid rgba(120, 113, 108, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            overflow-x: auto;
+        }
+
+        .contribution-graph {
+            display: flex;
+            gap: 4px;
+        }
+
+        .graph-week {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .graph-cell {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            background: rgba(120, 113, 108, 0.2);
+            /* Base empty color */
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .graph-cell:hover {
+            border: 1px solid rgba(250, 250, 249, 0.5);
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .graph-cell.selected {
+            border: 1px solid #fafaf9;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        /* App-style Amber color levels */
+        .graph-cell.level-0 {
+            background: rgba(120, 113, 108, 0.15);
+        }
+
+        /* Empty (stone-500ish) */
+        .graph-cell.level-1 {
+            background: rgba(251, 191, 36, 0.3);
+        }
+
+        /* Amber-400 at 30% */
+        .graph-cell.level-2 {
+            background: rgba(251, 191, 36, 0.6);
+        }
+
+        /* Amber-400 at 60% */
+        .graph-cell.level-3 {
+            background: rgba(251, 191, 36, 0.9);
+        }
+
+        /* Amber-400 at 90% */
+        .graph-cell.level-4 {
+            background: #d97706;
+        }
+
+        /* Amber-600 */
+
+        .graph-legend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: flex-end;
+            margin-top: 16px;
+            font-size: 12px;
+            color: #a8a29e;
+        }
+
+        .graph-legend span {
+            margin: 0 4px;
+        }
+
+        /* Global Tooltip */
+        #globalTooltip {
+            position: fixed;
+            transform: translateX(-50%) translateY(-100%);
+            background: #292524;
+            color: #fafaf9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 9999;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(120, 113, 108, 0.2);
+        }
+
+        #globalTooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #292524 transparent transparent transparent;
+        }
+
+        #clearFilterBtn {
+            font-size: 13px;
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.2s;
+        }
+
+        #clearFilterBtn:hover {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: rgba(251, 191, 36, 0.4);
+        }
     </style>
 </head>
 
@@ -466,25 +600,39 @@
                 </div>
             </header>
 
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card">
-                    <div class="stat-label">Total Saved Words</div>
-                    <div class="stat-value" id="totalWords">-</div>
+            <div class="contribution-section" id="contributionSection">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: baseline; gap: 16px;">
+                        <h2 style="font-size: 18px; color: #fafaf9; margin: 0; font-weight: 600;">Activity Graph</h2>
+                        <div style="font-size: 13px; color: #a8a29e; display: flex; gap: 16px;">
+                            <span>Total Words: <strong id="totalWords" style="color: #fafaf9;">-</strong></span>
+                            <span>AI Requests: <strong id="totalRequests" style="color: #fafaf9;">-</strong></span>
+                            <span style="display: none;">Est. Cost: <strong id="totalCost"
+                                    style="color: #fafaf9;">-</strong></span>
+                        </div>
+                    </div>
+                    <div id="contributionSettings"></div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">AI Requests</div>
-                    <div class="stat-value" id="totalRequests">-</div>
-                </div>
-                <div class="stat-card" style="display: none;">
-                    <div class="stat-label">Est. Cost</div>
-                    <div class="stat-value" id="totalCost">-</div>
-                    <div class="stat-sub">Based on token usage</div>
+                <div class="graph-container">
+                    <div id="contributionGraph" class="contribution-graph"></div>
+                    <div class="graph-legend">
+                        <span>Less</span>
+                        <div class="graph-cell level-0"></div>
+                        <div class="graph-cell level-1"></div>
+                        <div class="graph-cell level-2"></div>
+                        <div class="graph-cell level-3"></div>
+                        <div class="graph-cell level-4"></div>
+                        <span>More</span>
+                    </div>
                 </div>
             </div>
 
             <div class="words-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;">Recent Vocabulary</h2>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h2 style="margin: 0;" id="wordsSectionTitle">Recent Vocabulary</h2>
+                        <button id="clearFilterBtn">Clear Filter</button>
+                    </div>
                     <button id="exportBtn" class="refresh-btn" style="display: flex; align-items: center; gap: 6px;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">

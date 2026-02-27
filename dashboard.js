@@ -3,6 +3,7 @@ import { getConfig } from './config.js';
 document.addEventListener('DOMContentLoaded', init);
 
 let allWords = []; // Store words for export
+let currentFilterDate = null;
 
 async function init() {
     const refreshBtn = document.getElementById('refreshBtn');
@@ -10,6 +11,20 @@ async function init() {
 
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) exportBtn.addEventListener('click', exportVocabulary);
+
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', () => {
+            currentFilterDate = null;
+            document.querySelectorAll('.graph-cell').forEach(c => c.classList.remove('selected'));
+            renderWordsList(allWords.slice(0, 100));
+
+            const title = document.getElementById('wordsSectionTitle');
+            if (title) title.textContent = 'Recent Vocabulary';
+
+            clearFilterBtn.style.display = 'none';
+        });
+    }
 
     // Auth UI Elements
     const loginView = document.getElementById('loginView');
@@ -157,53 +172,197 @@ async function fetchWords(backendUrl) {
     list.innerHTML = '<div class="loading">Loading...</div>';
 
     try {
-        const response = await fetch(`${backendUrl}/words?limit=50`, { credentials: 'include' });
+        const response = await fetch(`${backendUrl}/words`, { credentials: 'include' });
         if (!response.ok) throw new Error('Words API Failed');
         const words = await response.json();
 
         // Store words for export
         allWords = words;
 
-        if (words.length === 0) {
-            list.innerHTML = '<div class="loading">No words saved yet.</div>';
-            return;
-        }
-
-        list.innerHTML = words.map((word, index) => `
-            <div class="word-card">
-                <div class="word-header">
-                    <span class="word-text">${escapeHtml(word.text)}</span>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        ${word.lookup_count > 1 ? `<span class="lookup-count">${word.lookup_count}x Lookups</span>` : ''}
-                        <button class="play-audio-btn" data-word-index="${index}" data-word-text="${escapeHtml(word.text)}" data-word-lang="${escapeHtml(word.language)}">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                            </svg>
-                            Listen
-                        </button>
-                        <button class="delete-btn" data-word-id="${word.id}" data-word-text="${escapeHtml(word.text)}">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                            </svg>
-                            Delete
-                        </button>
-                        <span class="word-lang">${escapeHtml(word.language)}</span>
-                    </div>
-                </div>
-                <div class="word-meaning">${escapeHtml(word.meaning)}</div>
-                ${word.grammar ? `<div class="word-sub">${escapeHtml(word.grammar)}</div>` : ''}
-                ${renderContexts(word.contexts, word.id)}
-                <div class="word-meta">
-                    <span>${new Date(word.saved_at).toLocaleDateString()}</span>
-                </div>
-            </div>
-        `).join('');
-
-        // Add event listeners for buttons
-        setupEventListeners();
+        renderContributionGraph(words);
+        renderWordsList(words.slice(0, 100)); // Render latest 100 by default
     } catch (e) {
         console.error(e);
         list.innerHTML = `<div class="error">Failed to load words. Is the backend running?</div>`;
+    }
+}
+
+function renderWordsList(wordsToRender) {
+    const list = document.getElementById('wordsList');
+
+    if (!wordsToRender || wordsToRender.length === 0) {
+        list.innerHTML = '<div class="loading">No words found.</div>';
+        return;
+    }
+
+    list.innerHTML = wordsToRender.map((word, index) => `
+        <div class="word-card">
+            <div class="word-header">
+                <span class="word-text">${escapeHtml(word.text)}</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    ${word.lookup_count > 1 ? `<span class="lookup-count">${word.lookup_count}x Lookups</span>` : ''}
+                    <button class="play-audio-btn" data-word-index="${index}" data-word-text="${escapeHtml(word.text)}" data-word-lang="${escapeHtml(word.language)}">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                        </svg>
+                        Listen
+                    </button>
+                    <button class="delete-btn" data-word-id="${word.id}" data-word-text="${escapeHtml(word.text)}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                        </svg>
+                        Delete
+                    </button>
+                    <span class="word-lang">${escapeHtml(word.language)}</span>
+                </div>
+            </div>
+            <div class="word-meaning">${escapeHtml(word.meaning)}</div>
+            ${word.grammar ? `<div class="word-sub">${escapeHtml(word.grammar)}</div>` : ''}
+            ${renderContexts(word.contexts, word.id)}
+            <div class="word-meta">
+                <span>${new Date(word.saved_at).toLocaleDateString()}</span>
+            </div>
+        </div>
+    `).join('');
+
+    // Add event listeners for buttons
+    setupEventListeners();
+}
+
+function renderContributionGraph(words) {
+    const graphContainer = document.getElementById('contributionGraph');
+    if (!graphContainer) return;
+
+    // Ensure global tooltip exists
+    let globalTooltip = document.getElementById('globalTooltip');
+    if (!globalTooltip) {
+        globalTooltip = document.createElement('div');
+        globalTooltip.id = 'globalTooltip';
+        document.body.appendChild(globalTooltip);
+    }
+
+    const wordsByDate = {};
+    words.forEach(word => {
+        const d = new Date(word.saved_at);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        wordsByDate[dateStr] = (wordsByDate[dateStr] || 0) + 1;
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 364);
+
+    const startDay = startDate.getDay();
+    startDate.setDate(startDate.getDate() - startDay);
+
+    const days = [];
+    let current = new Date(startDate);
+
+    // We only go up to the end of the current week (Saturday)
+    const endOfGraph = new Date(today);
+    const endDay = endOfGraph.getDay();
+    endOfGraph.setDate(endOfGraph.getDate() + (6 - endDay));
+    endOfGraph.setHours(0, 0, 0, 0);
+
+    while (current <= endOfGraph) {
+        const dateStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+        days.push({
+            date: dateStr,
+            count: wordsByDate[dateStr] || 0,
+            dateObj: new Date(current),
+            isFuture: current > today
+        });
+        current.setDate(current.getDate() + 1);
+    }
+
+    const weeks = [];
+    let currentWeek = [];
+    days.forEach(day => {
+        currentWeek.push(day);
+        if (currentWeek.length === 7) {
+            weeks.push(currentWeek);
+            currentWeek = [];
+        }
+    });
+    if (currentWeek.length > 0) weeks.push(currentWeek);
+
+    graphContainer.innerHTML = '';
+
+    weeks.forEach(week => {
+        const weekCol = document.createElement('div');
+        weekCol.className = 'graph-week';
+
+        week.forEach(day => {
+            const cell = document.createElement('div');
+
+            if (day.isFuture) {
+                cell.className = 'graph-cell level-0';
+                cell.style.opacity = '0.2';
+                cell.style.pointerEvents = 'none';
+            } else {
+                let level = 0;
+                if (day.count > 0) level = 1;
+                if (day.count >= 3) level = 2;
+                if (day.count >= 6) level = 3;
+                if (day.count >= 10) level = 4;
+
+                cell.className = `graph-cell level-${level}`;
+                if (day.date === currentFilterDate) {
+                    cell.classList.add('selected');
+                }
+                cell.dataset.date = day.date;
+
+                cell.addEventListener('mouseenter', () => {
+                    const rect = cell.getBoundingClientRect();
+                    const dateDisplay = day.dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    globalTooltip.textContent = `${day.count} word${day.count !== 1 ? 's' : ''} on ${dateDisplay}`;
+
+                    globalTooltip.style.left = `${rect.left + rect.width / 2}px`;
+                    globalTooltip.style.top = `${rect.top - 8}px`; // 8px above the cell
+                    globalTooltip.style.opacity = '1';
+                });
+
+                cell.addEventListener('mouseleave', () => {
+                    globalTooltip.style.opacity = '0';
+                });
+
+                cell.addEventListener('click', () => {
+                    filterByDate(day.date);
+                    document.querySelectorAll('.graph-cell').forEach(c => c.classList.remove('selected'));
+                    cell.classList.add('selected');
+                });
+            }
+
+            weekCol.appendChild(cell);
+        });
+
+        graphContainer.appendChild(weekCol);
+    });
+}
+
+function filterByDate(dateStr) {
+    currentFilterDate = dateStr;
+    const filteredWords = allWords.filter(word => {
+        const d = new Date(word.saved_at);
+        const wordDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return wordDateStr === dateStr;
+    });
+
+    renderWordsList(filteredWords);
+
+    const title = document.getElementById('wordsSectionTitle');
+    const clearBtn = document.getElementById('clearFilterBtn');
+
+    if (title) {
+        // Just use simple parsing to avoid time zone issues
+        const [y, m, d] = dateStr.split('-');
+        const displayDate = new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+        title.textContent = `Words on ${displayDate}`;
+    }
+
+    if (clearBtn) {
+        clearBtn.style.display = 'block';
     }
 }
 
