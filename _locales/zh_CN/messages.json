@@ -1,0 +1,231 @@
+{
+    "extensionName": {
+        "message": "LingoContext — AI 上下文翻译助手"
+    },
+    "extensionDescription": {
+        "message": "利用 AI 为语言学习者提供即时的上下文、语法和发音。"
+    },
+    "appName": {
+        "message": "LingoContext"
+    },
+    "appSubtitle": {
+        "message": "使用统计与保存的词汇"
+    },
+    "heroTitle": {
+        "message": "您的个人词汇助手。记录单词，追踪学习进度，通过人工智能洞察掌握新语言。"
+    },
+    "loginGoogle": {
+        "message": "使用 Google 账号登录"
+    },
+    "translateTo": {
+        "message": "翻译为:"
+    },
+    "settingsTitle": {
+        "message": "设置"
+    },
+    "interfaceLanguage": {
+        "message": "界面语言"
+    },
+    "interfaceLanguageHint": {
+        "message": "更改此仪表板文本和按钮的语言。"
+    },
+    "translationLanguage": {
+        "message": "翻译语言"
+    },
+    "translationLanguageHint": {
+        "message": "AI 将使用该语言为您解释单词并生成例句。"
+    },
+    "refreshTooltip": {
+        "message": "刷新"
+    },
+    "logoutTooltip": {
+        "message": "注销"
+    },
+    "settingsTooltip": {
+        "message": "设置"
+    },
+    "activityGraphTitle": {
+        "message": "活动图表"
+    },
+    "totalWordsLabel": {
+        "message": "总词汇:"
+    },
+    "aiRequestsLabel": {
+        "message": "AI 请求:"
+    },
+    "estCostLabel": {
+        "message": "预估成本:"
+    },
+    "lessLabel": {
+        "message": "更少"
+    },
+    "moreLabel": {
+        "message": "更多"
+    },
+    "recentVocabTitle": {
+        "message": "近期词汇"
+    },
+    "clearFilterBtn": {
+        "message": "清除筛选"
+    },
+    "exportPdfBtn": {
+        "message": "导出 CSV"
+    },
+    "listenBtn": {
+        "message": "播放音频"
+    },
+    "deleteBtn": {
+        "message": "删除"
+    },
+    "sourceLabel": {
+        "message": "来源"
+    },
+    "loadingMsg": {
+        "message": "加载数据中..."
+    },
+    "noWordsMsg": {
+        "message": "未找到单词。"
+    },
+    "failedMsg": {
+        "message": "加载单词失败。请检查后端是否运行?"
+    },
+    "deleteConfirm": {
+        "message": "您确定要删除 \"$1\" 吗？",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showLess": {
+        "message": "收起"
+    },
+    "andMoreContext": {
+        "message": "...以及其他 $1 个语境",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
+    "wordsOnDate": {
+        "message": "$1 的词汇",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "nWordsOnDate": {
+        "message": "在 $3 会有 $1 个单词",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            },
+            "3": {
+                "content": "$3"
+            }
+        }
+    },
+    "popupSubtitle": {
+        "message": "语言学习助手"
+    },
+    "accountSection": {
+        "message": "账户"
+    },
+    "preferencesSection": {
+        "message": "偏好设置"
+    },
+    "enableExtension": {
+        "message": "启用扩展"
+    },
+    "openDashboardBtn": {
+        "message": "打开我的仪表板"
+    },
+    "helpLink": {
+        "message": "帮助"
+    },
+    "feedbackLink": {
+        "message": "反馈"
+    },
+    "logoutBtn": {
+        "message": "注销"
+    },
+    "analyzingTitle": {
+        "message": "正在分析..."
+    },
+    "gettingInsights": {
+        "message": "获取分析结果中..."
+    },
+    "errorTitle": {
+        "message": "错误"
+    },
+    "tryAgainBtn": {
+        "message": "重试"
+    },
+    "wordAnalysisLabel": {
+        "message": "单词分析"
+    },
+    "phraseAnalysisLabel": {
+        "message": "短语分析"
+    },
+    "meaningLabel": {
+        "message": "含义与用法"
+    },
+    "grammarLabel": {
+        "message": "语法与语境"
+    },
+    "saveBtn": {
+        "message": "保存"
+    },
+    "savedBtn": {
+        "message": "已保存!"
+    },
+    "loginToSavePrompt": {
+        "message": "登录以保存单词并跟踪进度"
+    },
+    "loginBtn": {
+        "message": "登录"
+    },
+    "clickHereMsg": {
+        "message": "单词已保存！点击此处在仪表板中查看。"
+    },
+    "toastLoginToSave": {
+        "message": "请登录以保存"
+    },
+    "toastBackendNotConfigured": {
+        "message": "未配置后端"
+    },
+    "toastFailedToSave": {
+        "message": "保存失败: $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "toastWordUpdated": {
+        "message": "单词已更新！"
+    },
+    "toastContextAdded": {
+        "message": "已添加新语境！"
+    },
+    "toastWordSavedToDashboard": {
+        "message": "单词已保存至仪表板！"
+    },
+    "toastErrorSaving": {
+        "message": "保存单词时出错"
+    },
+    "toastTranslationLanguageSaved": {
+        "message": "翻译语言已保存！"
+    },
+    "toastTranslationLanguageError": {
+        "message": "保存语言偏好设置失败。请重试。"
+    }
+}

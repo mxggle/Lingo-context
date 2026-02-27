@@ -3,6 +3,7 @@
     "name": "LingoContext — Context-Aware AI Translator",
     "version": "1.0.2",
     "description": "Instant context, grammar, and pronunciation for language learners using AI",
+    "default_locale": "en",
     "permissions": [
         "tts",
         "storage"

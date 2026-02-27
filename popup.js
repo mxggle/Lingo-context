@@ -1,6 +1,9 @@
 import { CONFIG, getConfig } from './config.js';
+import { initI18n, getTransl } from './i18n.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize i18n first
+    await new Promise(resolve => initI18n(resolve));
     const enabledToggle = document.getElementById('enabled');
     const dashboardBtn = document.getElementById('dashboardBtn');
     const status = document.getElementById('status');

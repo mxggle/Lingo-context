@@ -1,0 +1,231 @@
+{
+    "extensionName": {
+        "message": "LingoContext — AI文脈翻訳ツール"
+    },
+    "extensionDescription": {
+        "message": "AIを使って言語学習者に瞬時に文脈、文法、発音を提供します。"
+    },
+    "appName": {
+        "message": "LingoContext"
+    },
+    "appSubtitle": {
+        "message": "使用統計と保存された単語"
+    },
+    "heroTitle": {
+        "message": "あなたの個人的な単語アシスタント。単語を保存し、学習プロセスを追跡し、AIの洞察力で新しい言語をマスターしましょう。"
+    },
+    "loginGoogle": {
+        "message": "Googleでログイン"
+    },
+    "translateTo": {
+        "message": "翻訳先:"
+    },
+    "settingsTitle": {
+        "message": "設定"
+    },
+    "interfaceLanguage": {
+        "message": "インターフェース言語"
+    },
+    "interfaceLanguageHint": {
+        "message": "このダッシュボードのテキストとボタンの言語を変更します。"
+    },
+    "translationLanguage": {
+        "message": "翻訳言語"
+    },
+    "translationLanguageHint": {
+        "message": "AIが単語を説明し、例文を生成するために使用する言語です。"
+    },
+    "refreshTooltip": {
+        "message": "更新"
+    },
+    "logoutTooltip": {
+        "message": "ログアウト"
+    },
+    "settingsTooltip": {
+        "message": "設定"
+    },
+    "activityGraphTitle": {
+        "message": "アクティビティグラフ"
+    },
+    "totalWordsLabel": {
+        "message": "合計単語:"
+    },
+    "aiRequestsLabel": {
+        "message": "AIリクエスト:"
+    },
+    "estCostLabel": {
+        "message": "推定費用:"
+    },
+    "lessLabel": {
+        "message": "少ない"
+    },
+    "moreLabel": {
+        "message": "多い"
+    },
+    "recentVocabTitle": {
+        "message": "最近の単語"
+    },
+    "clearFilterBtn": {
+        "message": "フィルターをクリア"
+    },
+    "exportPdfBtn": {
+        "message": "CSVをエクスポート"
+    },
+    "listenBtn": {
+        "message": "音声を聞く"
+    },
+    "deleteBtn": {
+        "message": "削除"
+    },
+    "sourceLabel": {
+        "message": "参照元"
+    },
+    "loadingMsg": {
+        "message": "データを読み込み中..."
+    },
+    "noWordsMsg": {
+        "message": "単語が見つかりません。"
+    },
+    "failedMsg": {
+        "message": "単語の読み込みに失敗しました。バックエンドは実行中ですか？"
+    },
+    "deleteConfirm": {
+        "message": "本当に \"$1\" を削除しますか？",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showLess": {
+        "message": "少なく表示"
+    },
+    "andMoreContext": {
+        "message": "他$1件の文脈...",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
+    "wordsOnDate": {
+        "message": "$1の単語",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "nWordsOnDate": {
+        "message": "$3に$1個の単語",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            },
+            "3": {
+                "content": "$3"
+            }
+        }
+    },
+    "popupSubtitle": {
+        "message": "言語学習アシスタント"
+    },
+    "accountSection": {
+        "message": "アカウント"
+    },
+    "preferencesSection": {
+        "message": "環境設定"
+    },
+    "enableExtension": {
+        "message": "拡張機能を有効にする"
+    },
+    "openDashboardBtn": {
+        "message": "ダッシュボードを開く"
+    },
+    "helpLink": {
+        "message": "ヘルプ"
+    },
+    "feedbackLink": {
+        "message": "フィードバック"
+    },
+    "logoutBtn": {
+        "message": "ログアウト"
+    },
+    "analyzingTitle": {
+        "message": "分析中..."
+    },
+    "gettingInsights": {
+        "message": "洞察を取得中..."
+    },
+    "errorTitle": {
+        "message": "エラー"
+    },
+    "tryAgainBtn": {
+        "message": "再試行"
+    },
+    "wordAnalysisLabel": {
+        "message": "単語分析"
+    },
+    "phraseAnalysisLabel": {
+        "message": "フレーズ分析"
+    },
+    "meaningLabel": {
+        "message": "意味と使い方"
+    },
+    "grammarLabel": {
+        "message": "文法と文脈"
+    },
+    "saveBtn": {
+        "message": "保存"
+    },
+    "savedBtn": {
+        "message": "保存しました!"
+    },
+    "loginToSavePrompt": {
+        "message": "単語を保存して進捗を追跡するにはログインしてください"
+    },
+    "loginBtn": {
+        "message": "ログイン"
+    },
+    "clickHereMsg": {
+        "message": "単語を保存しました！ここをクリックしてダッシュボードで表示します。"
+    },
+    "toastLoginToSave": {
+        "message": "保存するにはログインしてください"
+    },
+    "toastBackendNotConfigured": {
+        "message": "バックエンドが設定されていません"
+    },
+    "toastFailedToSave": {
+        "message": "保存に失敗しました: $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "toastWordUpdated": {
+        "message": "単語が更新されました！"
+    },
+    "toastContextAdded": {
+        "message": "新しい文脈が追加されました！"
+    },
+    "toastWordSavedToDashboard": {
+        "message": "ダッシュボードに単語を保存しました！"
+    },
+    "toastErrorSaving": {
+        "message": "単語の保存中にエラーが発生しました"
+    },
+    "toastTranslationLanguageSaved": {
+        "message": "翻訳言語が保存されました！"
+    },
+    "toastTranslationLanguageError": {
+        "message": "言語設定の保存に失敗しました。もう一度お試しください。"
+    }
+}

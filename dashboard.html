@@ -250,6 +250,37 @@
             border-color: #a8a29e;
         }
 
+        .icon-btn {
+            background: rgba(41, 37, 36, 0.4);
+            border: 1px solid rgba(120, 113, 108, 0.2);
+            color: #a8a29e;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e7e5e4;
+            border-color: #a8a29e;
+        }
+
+        .logout-btn {
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
         .primary-btn {
             background: #fafaf9;
             color: #1c1917;
@@ -516,6 +547,124 @@
             background: rgba(251, 191, 36, 0.2);
             border-color: rgba(251, 191, 36, 0.4);
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: #292524;
+            /* stone-800 */
+            border: 1px solid rgba(120, 113, 108, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            transform: scale(0.95) translateY(10px);
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(120, 113, 108, 0.2);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fafaf9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #a8a29e;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fafaf9;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #a8a29e;
+            margin-bottom: 8px;
+        }
+
+        .setting-control {
+            width: 100%;
+            background: rgba(28, 25, 23, 0.8);
+            border: 1px solid rgba(120, 113, 108, 0.3);
+            color: #fafaf9;
+            font-size: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a8a29e%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 10px auto;
+            transition: border-color 0.2s;
+        }
+
+        .setting-control:hover,
+        .setting-control:focus {
+            border-color: rgba(251, 191, 36, 0.5);
+            /* amber-400 */
+        }
+
+        .setting-hint {
+            font-size: 11px;
+            color: #78716c;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
     </style>
 </head>
 
@@ -525,10 +674,10 @@
         <div id="loginView" style="display: none; text-align: center; padding: 60px 20px;">
             <img src="icons/icon128.png" alt="LingoContext Logo"
                 style="width: 80px; height: 80px; margin-bottom: 20px;">
-            <h1
+            <h1 data-i18n="appName"
                 style="font-size: 3rem; margin-bottom: 20px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                 LingoContext</h1>
-            <p
+            <p data-i18n="heroTitle"
                 style="color: #a8a29e; font-size: 1.2rem; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto;">
                 Your personal vocabulary assistant. Save words, track your learning journey, and master new languages
                 with AI-powered insights.
@@ -548,7 +697,7 @@
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         fill="#EA4335" />
                 </svg>
-                Sign in with Google
+                <span data-i18n="loginGoogle">Sign in with Google</span>
             </button>
         </div>
 
@@ -558,44 +707,45 @@
                 <div style="display: flex; gap: 16px; align-items: center;">
                     <img src="icons/icon96.png" alt="Logo" style="width: 48px; height: 48px;">
                     <div>
-                        <h1>LingoContext</h1>
-                        <p class="subtitle">Usage Statistics & Saved Vocabulary</p>
+                        <h1 data-i18n="appName">LingoContext</h1>
+                        <p class="subtitle" data-i18n="appSubtitle">Usage Statistics & Saved Vocabulary</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
-                    <!-- Language Settings -->
-                    <div
-                        style="display: flex; align-items: center; gap: 8px; background: rgba(41, 37, 36, 0.4); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(120, 113, 108, 0.2);">
-                        <label for="targetLanguage" style="color: #a8a29e; font-size: 13px; font-weight: 500;">Target
-                            Language:</label>
-                        <select id="targetLanguage"
-                            style="background: transparent; border: none; color: #fafaf9; font-size: 13px; cursor: pointer; outline: none; font-weight: 500;">
-                            <option value="English">English</option>
-                            <option value="Japanese">Japanese</option>
-                            <option value="Spanish">Spanish</option>
-                            <option value="French">French</option>
-                            <option value="German">German</option>
-                            <option value="Italian">Italian</option>
-                            <option value="Portuguese">Portuguese</option>
-                            <option value="Russian">Russian</option>
-                            <option value="Korean">Korean</option>
-                            <option value="Simplified Chinese">Simplified Chinese</option>
-                            <option value="Traditional Chinese">Traditional Chinese</option>
-                        </select>
-                    </div>
-
-                    <div style="width: 1px; height: 24px; background: rgba(120, 113, 108, 0.2); margin: 0 4px;"></div>
-
-                    <div id="userProfile" style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                    <div id="userProfile"
+                        style="display: flex; align-items: center; gap: 8px; background: rgba(41, 37, 36, 0.4); padding: 4px 12px 4px 4px; border-radius: 20px; border: 1px solid rgba(120, 113, 108, 0.2);">
                         <img id="userAvatar" src="" alt=""
-                            style="width: 32px; height: 32px; border-radius: 50%; display: none; border: 2px solid rgba(120, 113, 108, 0.3);">
-                        <span id="userName" style="color: #e7e5e4; font-size: 14px; font-weight: 500;"></span>
+                            style="width: 24px; height: 24px; border-radius: 50%; display: none;">
+                        <span id="userName" style="color: #e7e5e4; font-size: 13px; font-weight: 500;"></span>
                     </div>
 
                     <div style="display: flex; gap: 8px; margin-left: 4px;">
-                        <button id="refreshBtn" class="refresh-btn">Refresh</button>
-                        <button id="logoutBtn" class="refresh-btn"
-                            style="border-color: rgba(248, 113, 113, 0.3); color: #f87171;">Logout</button>
+                        <button id="settingsBtn" class="icon-btn" title="Settings" data-i18n-title="settingsTooltip">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                </path>
+                            </svg>
+                        </button>
+                        <button id="refreshBtn" class="icon-btn" title="Refresh" data-i18n-title="refreshTooltip">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                        <button id="logoutBtn" class="icon-btn logout-btn" title="Logout"
+                            data-i18n-title="logoutTooltip">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -603,12 +753,15 @@
             <div class="contribution-section" id="contributionSection">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <div style="display: flex; align-items: baseline; gap: 16px;">
-                        <h2 style="font-size: 18px; color: #fafaf9; margin: 0; font-weight: 600;">Activity Graph</h2>
+                        <h2 data-i18n="activityGraphTitle"
+                            style="font-size: 18px; color: #fafaf9; margin: 0; font-weight: 600;">Activity Graph</h2>
                         <div style="font-size: 13px; color: #a8a29e; display: flex; gap: 16px;">
-                            <span>Total Words: <strong id="totalWords" style="color: #fafaf9;">-</strong></span>
-                            <span>AI Requests: <strong id="totalRequests" style="color: #fafaf9;">-</strong></span>
-                            <span style="display: none;">Est. Cost: <strong id="totalCost"
+                            <span><span data-i18n="totalWordsLabel">Total Words:</span> <strong id="totalWords"
                                     style="color: #fafaf9;">-</strong></span>
+                            <span><span data-i18n="aiRequestsLabel">AI Requests:</span> <strong id="totalRequests"
+                                    style="color: #fafaf9;">-</strong></span>
+                            <span style="display: none;"><span data-i18n="estCostLabel">Est. Cost:</span> <strong
+                                    id="totalCost" style="color: #fafaf9;">-</strong></span>
                         </div>
                     </div>
                     <div id="contributionSettings"></div>
@@ -616,13 +769,13 @@
                 <div class="graph-container">
                     <div id="contributionGraph" class="contribution-graph"></div>
                     <div class="graph-legend">
-                        <span>Less</span>
+                        <span data-i18n="lessLabel">Less</span>
                         <div class="graph-cell level-0"></div>
                         <div class="graph-cell level-1"></div>
                         <div class="graph-cell level-2"></div>
                         <div class="graph-cell level-3"></div>
                         <div class="graph-cell level-4"></div>
-                        <span>More</span>
+                        <span data-i18n="moreLabel">More</span>
                     </div>
                 </div>
             </div>
@@ -630,20 +783,79 @@
             <div class="words-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <h2 style="margin: 0;" id="wordsSectionTitle">Recent Vocabulary</h2>
-                        <button id="clearFilterBtn">Clear Filter</button>
+                        <h2 style="margin: 0;" id="wordsSectionTitle" data-i18n="recentVocabTitle">Recent Vocabulary
+                        </h2>
+                        <button id="clearFilterBtn" data-i18n="clearFilterBtn">Clear Filter</button>
                     </div>
                     <button id="exportBtn" class="refresh-btn" style="display: flex; align-items: center; gap: 6px;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
-                        Export CSV
+                        <span data-i18n="exportPdfBtn">Export CSV</span>
                     </button>
                 </div>
                 <div id="wordsList" class="words-list">
-                    <div class="loading">Loading data...</div>
+                    <div class="loading" data-i18n="loadingMsg">Loading data...</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
+                    </svg>
+                    <span data-i18n="settingsTitle">Settings</span>
+                </h2>
+                <button id="closeSettingsBtn" class="close-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label" for="interfaceLanguage" data-i18n="interfaceLanguage">Interface
+                    Language</label>
+                <select id="interfaceLanguage" class="setting-control">
+                    <option value="en">English</option>
+                    <option value="zh_CN">简体中文</option>
+                    <option value="zh_TW">繁體中文</option>
+                    <option value="ja">日本語</option>
+                </select>
+                <div class="setting-hint" data-i18n="interfaceLanguageHint">Changes the language of this dashboard text
+                    and buttons.</div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label" for="targetLanguage" data-i18n="translationLanguage">Translation
+                    Language</label>
+                <select id="targetLanguage" class="setting-control">
+                    <option value="English">English</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="Russian">Russian</option>
+                    <option value="Korean">Korean</option>
+                    <option value="Simplified Chinese">Simplified Chinese</option>
+                    <option value="Traditional Chinese">Traditional Chinese</option>
+                </select>
+                <div class="setting-hint" data-i18n="translationLanguageHint">The language AI will use to explain words
+                    and generate examples for you.</div>
             </div>
         </div>
     </div>

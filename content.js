@@ -19,6 +19,10 @@ let dragStartY = 0;
 let initialPopupX = 0;
 let initialPopupY = 0;
 
+// i18n State
+let currentLocaleData = {};
+let interfaceLanguage = 'en';
+
 // Initialize the extension
 let isExtensionEnabled = true;
 
@@ -26,17 +30,31 @@ function init() {
   // Check for auth data from success page (for login flow)
   checkForAuthData();
 
-  // Check enabled state
-  chrome.storage.local.get(['EXTENSION_ENABLED'], (result) => {
+  // Load language preference and settings
+  chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage'], async (result) => {
     isExtensionEnabled = result.EXTENSION_ENABLED !== false;
+    interfaceLanguage = result.interfaceLanguage || 'en';
+    await loadLocaleData(interfaceLanguage);
   });
 
   // Listen for changes
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.EXTENSION_ENABLED) {
-      isExtensionEnabled = changes.EXTENSION_ENABLED.newValue;
-      if (!isExtensionEnabled) {
-        hidePopup();
+  chrome.storage.onChanged.addListener(async (changes, namespace) => {
+    if (namespace === 'local') {
+      if (changes.EXTENSION_ENABLED) {
+        isExtensionEnabled = changes.EXTENSION_ENABLED.newValue;
+        if (!isExtensionEnabled) {
+          hidePopup();
+        }
+      }
+      if (changes.interfaceLanguage) {
+        interfaceLanguage = changes.interfaceLanguage.newValue;
+        await loadLocaleData(interfaceLanguage);
+        // If popup is visible, re-render it
+        if (popup && !popup.classList.contains('hidden') && currentSelection) {
+          const wordCount = currentSelection.text.split(/\s+/).length;
+          const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
+          analyzeText(currentSelection.text, currentSelection.context, mode);
+        }
       }
     }
   });
@@ -44,6 +62,36 @@ function init() {
   createPopup();
   setupEventListeners();
   console.log('LingoContext content script loaded');
+}
+
+// Load external locale json directly because chrome.i18n is restricted to browser language
+async function loadLocaleData(langCode) {
+  try {
+    const fileUrl = chrome.runtime.getURL(`_locales/${langCode}/messages.json`);
+    const response = await fetch(fileUrl);
+    if (response.ok) {
+      currentLocaleData = await response.json();
+    }
+  } catch (e) {
+    console.error("Content script failed to load locale data:", e);
+  }
+}
+
+// Get translated string
+function getTransl(key) {
+  if (currentLocaleData[key] && currentLocaleData[key].message) {
+    return currentLocaleData[key].message;
+  }
+  return key;
+}
+
+// Replace placeholders in string ($1, $2, etc)
+function processTranslPlaceholders(messageTemplate, ...args) {
+  let result = messageTemplate;
+  for (let i = 0; i < args.length; i++) {
+    result = result.replace(new RegExp(`\\$${i + 1}`, 'g'), args[i]);
+  }
+  return result;
 }
 
 // Check for auth data embedded in the page (from /auth/success)
@@ -746,9 +794,12 @@ async function analyzeText(text, context, mode) {
 
 // Render loading state
 function renderLoading() {
+  const analyzingStr = getTransl('analyzingTitle') || 'Analyzing...';
+  const insightsStr = getTransl('gettingInsights') || 'Getting insights...';
+
   return `
     <div class="popup-header">
-      <span class="popup-title">Analyzing...</span>
+      <span class="popup-title">${escapeHtml(analyzingStr)}</span>
       <button class="close-btn" onclick="this.closest('.popup').classList.add('hidden')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
@@ -757,16 +808,19 @@ function renderLoading() {
     </div>
     <div class="loading">
       <div class="loading-spinner"></div>
-      <div class="loading-text">Getting insights...</div>
+      <div class="loading-text">${escapeHtml(insightsStr)}</div>
     </div>
   `;
 }
 
 // Render error state
 function renderError(message) {
+  const errorTitleStr = getTransl('errorTitle') || 'Error';
+  const tryAgainStr = getTransl('tryAgainBtn') || 'Try Again';
+
   return `
     <div class="popup-header">
-      <span class="popup-title">Error</span>
+      <span class="popup-title">${escapeHtml(errorTitleStr)}</span>
       <button class="close-btn" data-action="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
@@ -776,7 +830,7 @@ function renderError(message) {
     <div class="error">
       <div class="error-icon">⚠️</div>
       <div class="error-message">${escapeHtml(message)}</div>
-      <button class="error-retry" data-action="retry">Try Again</button>
+      <button class="error-retry" data-action="retry">${escapeHtml(tryAgainStr)}</button>
     </div>
   `;
 }
@@ -796,11 +850,18 @@ function renderResult(originalText, data, mode) {
     displayText = data.furigana;
   }
 
-  const modeLabel = mode === 'word' ? 'Word Analysis' : 'Phrase Analysis';
+  const modeLabel = mode === 'word'
+    ? (getTransl('wordAnalysisLabel') || 'Word Analysis')
+    : (getTransl('phraseAnalysisLabel') || 'Phrase Analysis');
+
+  const meaningLabel = getTransl('meaningLabel') || 'Meaning';
+  const grammarLabel = getTransl('grammarLabel') || 'Grammar';
+  const listenLabel = getTransl('listenBtn') || 'Listen';
+  const saveLabel = getTransl('saveBtn') || 'Save';
 
   return `
     <div class="popup-header">
-      <span class="popup-title">${modeLabel}</span>
+      <span class="popup-title">${escapeHtml(modeLabel)}</span>
       <button class="close-btn" data-action="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
@@ -811,13 +872,13 @@ function renderResult(originalText, data, mode) {
       <div class="selected-text">${displayText}</div>
       
       <div class="section">
-        <div class="section-label">Meaning</div>
+        <div class="section-label">${escapeHtml(meaningLabel)}</div>
         <div class="section-content meaning-content">${escapeHtml(data.meaning)}</div>
       </div>
       
       ${data.grammar ? `
         <div class="section">
-          <div class="section-label">Grammar</div>
+          <div class="section-label">${escapeHtml(grammarLabel)}</div>
           <div class="section-content grammar-content">${escapeHtml(data.grammar)}</div>
         </div>
       ` : ''}
@@ -826,7 +887,7 @@ function renderResult(originalText, data, mode) {
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
           </svg>
-          Listen
+          ${escapeHtml(listenLabel)}
         </button>
         <button class="action-btn secondary" data-action="save">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -834,7 +895,7 @@ function renderResult(originalText, data, mode) {
             <polyline points="17 21 17 13 7 13 7 21"/>
             <polyline points="7 3 7 8 15 8"/>
           </svg>
-          Save
+          ${escapeHtml(saveLabel)}
         </button>
       </div>
     </div>
@@ -922,24 +983,25 @@ async function saveWord(text, data) {
     if (response.error) {
       const msg = response.message;
       if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('HTTP 401')) {
-        showToast('Please Login to Save', 'login');
+        showToast(getTransl('toastLoginToSave') || 'Please Login to Save', 'login');
       } else if (msg.includes('backend URL')) {
-        showToast('Backend not configured');
+        showToast(getTransl('toastBackendNotConfigured') || 'Backend not configured');
       } else {
-        showToast('Failed to save: ' + response.message);
+        const errorTemplate = getTransl('toastFailedToSave') || 'Failed to save: $1';
+        showToast(processTranslPlaceholders(errorTemplate, response.message));
       }
     } else {
       // Show context-aware message based on action
       if (response.action === 'lifted') {
-        showToast('Word updated!');
+        showToast(getTransl('toastWordUpdated') || 'Word updated!');
       } else if (response.action === 'context_added') {
-        showToast('New context added!');
+        showToast(getTransl('toastContextAdded') || 'New context added!');
       } else {
-        showToast('Word saved to Dashboard!');
+        showToast(getTransl('toastWordSavedToDashboard') || 'Word saved to Dashboard!');
       }
     }
   } catch (error) {
-    showToast('Error saving word');
+    showToast(getTransl('toastErrorSaving') || 'Error saving word');
     console.error(error);
   }
 }
@@ -957,7 +1019,7 @@ function showToast(message, action = null) {
 
   if (action === 'login') {
     const btn = document.createElement('button');
-    btn.textContent = 'Login';
+    btn.textContent = getTransl('loginBtn') || 'Login';
     btn.className = 'toast-login-btn';
     btn.onclick = () => {
       chrome.runtime.sendMessage({ type: 'OPEN_LOGIN' });

@@ -234,14 +234,14 @@
       <img src="icons/icon128.png" class="logo" alt="LingoContext Logo">
       <div class="title-block">
         <h1>LingoContext</h1>
-        <p>Language Learning Assistant</p>
+        <p data-i18n="popupSubtitle">Language Learning Assistant</p>
       </div>
     </header>
 
 
 
     <div class="section">
-      <div class="section-title">Account</div>
+      <div class="section-title" data-i18n="accountSection">Account</div>
       <div id="authSection">
         <button class="btn" id="loginBtn"
           style="background: white; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px;">
@@ -259,7 +259,7 @@
               d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
               fill="#EA4335"></path>
           </svg>
-          Login with Google
+          <span data-i18n="loginGoogle">Login with Google</span>
         </button>
       </div>
       <div id="userInfo" style="display: none;">
@@ -275,15 +275,15 @@
             </div>
           </div>
         </div>
-        <button class="btn" id="logoutBtn"
+        <button class="btn" id="logoutBtn" data-i18n="logoutBtn"
           style="background: rgba(248, 113, 113, 0.1); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.2);">Logout</button>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">Preferences</div>
+      <div class="section-title" data-i18n="preferencesSection">Preferences</div>
       <div class="toggle-group">
-        <span class="toggle-label">Enable Extension</span>
+        <span class="toggle-label" data-i18n="enableExtension">Enable Extension</span>
         <label class="toggle">
           <input type="checkbox" id="enabled" checked>
           <span class="toggle-slider"></span>
@@ -293,20 +293,22 @@
 
     <div class="section">
       <button class="btn" style="background: rgba(255,255,255,0.1); color: #e2e8f0; margin-bottom: 12px;"
-        id="dashboardBtn">
+        id="dashboardBtn" data-i18n="openDashboardBtn">
         Open My Dashboard
       </button>
     </div>
 
+    <footer>
+      <p>
+        <a href="https://github.com/mxggle/Lingo-context" target="_blank" data-i18n="helpLink">Help</a> |
+        <a href="mailto:support@lingocontext.ext" data-i18n="feedbackLink">Feedback</a>
+      </p>
+    </footer>
 
     <div class="status" id="status"></div>
 
-    <footer>
-      <p>Version 1.0.0 · <a href="#">Help</a> · <a href="#">Feedback</a></p>
-    </footer>
+    <script type="module" src="popup.js"></script>
   </div>
-
-  <script src="popup.js" type="module"></script>
 </body>
 
 </html>

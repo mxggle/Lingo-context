@@ -1,0 +1,231 @@
+{
+    "extensionName": {
+        "message": "LingoContext — AI 上下文翻譯助手"
+    },
+    "extensionDescription": {
+        "message": "利用 AI 為語言學習者提供即時的上下文、文法和發音。"
+    },
+    "appName": {
+        "message": "LingoContext"
+    },
+    "appSubtitle": {
+        "message": "使用統計與保存的詞彙"
+    },
+    "heroTitle": {
+        "message": "您的個人詞彙助手。記錄單字，追蹤學習進度，透過人工智慧洞察掌握新語言。"
+    },
+    "loginGoogle": {
+        "message": "使用 Google 帳號登入"
+    },
+    "translateTo": {
+        "message": "翻譯為:"
+    },
+    "settingsTitle": {
+        "message": "設定"
+    },
+    "interfaceLanguage": {
+        "message": "介面語言"
+    },
+    "interfaceLanguageHint": {
+        "message": "更改此儀表板文字和按鈕的語言。"
+    },
+    "translationLanguage": {
+        "message": "翻譯語言"
+    },
+    "translationLanguageHint": {
+        "message": "AI 將使用該語言為您解釋單字並生成例句。"
+    },
+    "refreshTooltip": {
+        "message": "重新整理"
+    },
+    "logoutTooltip": {
+        "message": "登出"
+    },
+    "settingsTooltip": {
+        "message": "設定"
+    },
+    "activityGraphTitle": {
+        "message": "活動圖表"
+    },
+    "totalWordsLabel": {
+        "message": "總詞彙:"
+    },
+    "aiRequestsLabel": {
+        "message": "AI 請求:"
+    },
+    "estCostLabel": {
+        "message": "預估成本:"
+    },
+    "lessLabel": {
+        "message": "較少"
+    },
+    "moreLabel": {
+        "message": "較多"
+    },
+    "recentVocabTitle": {
+        "message": "近期詞彙"
+    },
+    "clearFilterBtn": {
+        "message": "清除篩選"
+    },
+    "exportPdfBtn": {
+        "message": "匯出 CSV"
+    },
+    "listenBtn": {
+        "message": "播放音訊"
+    },
+    "deleteBtn": {
+        "message": "刪除"
+    },
+    "sourceLabel": {
+        "message": "來源"
+    },
+    "loadingMsg": {
+        "message": "載入資料中..."
+    },
+    "noWordsMsg": {
+        "message": "未找到單字。"
+    },
+    "failedMsg": {
+        "message": "載入單字失敗。請檢查後端是否執行中？"
+    },
+    "deleteConfirm": {
+        "message": "您確定要刪除 \"$1\" 嗎？",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showLess": {
+        "message": "收起"
+    },
+    "andMoreContext": {
+        "message": "...以及其他 $1 個語境",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
+    "wordsOnDate": {
+        "message": "$1 的詞彙",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "nWordsOnDate": {
+        "message": "在 $3 會有 $1 個單字",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            },
+            "3": {
+                "content": "$3"
+            }
+        }
+    },
+    "popupSubtitle": {
+        "message": "語言學習助手"
+    },
+    "accountSection": {
+        "message": "帳戶"
+    },
+    "preferencesSection": {
+        "message": "偏好設定"
+    },
+    "enableExtension": {
+        "message": "啟用擴充功能"
+    },
+    "openDashboardBtn": {
+        "message": "開啟我的儀表板"
+    },
+    "helpLink": {
+        "message": "說明"
+    },
+    "feedbackLink": {
+        "message": "回饋"
+    },
+    "logoutBtn": {
+        "message": "登出"
+    },
+    "analyzingTitle": {
+        "message": "正在分析..."
+    },
+    "gettingInsights": {
+        "message": "獲取分析結果中..."
+    },
+    "errorTitle": {
+        "message": "錯誤"
+    },
+    "tryAgainBtn": {
+        "message": "重試"
+    },
+    "wordAnalysisLabel": {
+        "message": "單字分析"
+    },
+    "phraseAnalysisLabel": {
+        "message": "片語分析"
+    },
+    "meaningLabel": {
+        "message": "含義與用法"
+    },
+    "grammarLabel": {
+        "message": "文法與語境"
+    },
+    "saveBtn": {
+        "message": "儲存"
+    },
+    "savedBtn": {
+        "message": "已儲存!"
+    },
+    "loginToSavePrompt": {
+        "message": "登入以儲存單字並追蹤進度"
+    },
+    "loginBtn": {
+        "message": "登入"
+    },
+    "clickHereMsg": {
+        "message": "單字已儲存！點擊此處在儀表板中查看。"
+    },
+    "toastLoginToSave": {
+        "message": "請登入以儲存"
+    },
+    "toastBackendNotConfigured": {
+        "message": "未配置後端"
+    },
+    "toastFailedToSave": {
+        "message": "儲存失敗: $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "toastWordUpdated": {
+        "message": "單字已更新！"
+    },
+    "toastContextAdded": {
+        "message": "已添加新語境！"
+    },
+    "toastWordSavedToDashboard": {
+        "message": "單字已儲存至儀表板！"
+    },
+    "toastErrorSaving": {
+        "message": "儲存單字時出錯"
+    },
+    "toastTranslationLanguageSaved": {
+        "message": "翻譯語言已儲存！"
+    },
+    "toastTranslationLanguageError": {
+        "message": "儲存語言偏好設定失敗。請重試。"
+    }
+}

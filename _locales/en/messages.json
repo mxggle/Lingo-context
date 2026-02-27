@@ -1,0 +1,231 @@
+{
+    "extensionName": {
+        "message": "LingoContext — Context-Aware AI Translator"
+    },
+    "extensionDescription": {
+        "message": "Instant context, grammar, and pronunciation for language learners using AI"
+    },
+    "appName": {
+        "message": "LingoContext"
+    },
+    "appSubtitle": {
+        "message": "Usage Statistics & Saved Vocabulary"
+    },
+    "heroTitle": {
+        "message": "Your personal vocabulary assistant. Save words, track your learning journey, and master new languages with AI-powered insights."
+    },
+    "loginGoogle": {
+        "message": "Sign in with Google"
+    },
+    "translateTo": {
+        "message": "Translate to:"
+    },
+    "settingsTitle": {
+        "message": "Settings"
+    },
+    "interfaceLanguage": {
+        "message": "Interface Language"
+    },
+    "interfaceLanguageHint": {
+        "message": "Changes the language of this dashboard text and buttons."
+    },
+    "translationLanguage": {
+        "message": "Translation Language"
+    },
+    "translationLanguageHint": {
+        "message": "The language AI will use to explain words and generate examples for you."
+    },
+    "refreshTooltip": {
+        "message": "Refresh"
+    },
+    "logoutTooltip": {
+        "message": "Logout"
+    },
+    "settingsTooltip": {
+        "message": "Settings"
+    },
+    "activityGraphTitle": {
+        "message": "Activity Graph"
+    },
+    "totalWordsLabel": {
+        "message": "Total Words:"
+    },
+    "aiRequestsLabel": {
+        "message": "AI Requests:"
+    },
+    "estCostLabel": {
+        "message": "Est. Cost:"
+    },
+    "lessLabel": {
+        "message": "Less"
+    },
+    "moreLabel": {
+        "message": "More"
+    },
+    "recentVocabTitle": {
+        "message": "Recent Vocabulary"
+    },
+    "clearFilterBtn": {
+        "message": "Clear Filter"
+    },
+    "exportPdfBtn": {
+        "message": "Export CSV"
+    },
+    "listenBtn": {
+        "message": "Listen"
+    },
+    "deleteBtn": {
+        "message": "Delete"
+    },
+    "sourceLabel": {
+        "message": "Source"
+    },
+    "loadingMsg": {
+        "message": "Loading data..."
+    },
+    "noWordsMsg": {
+        "message": "No words found."
+    },
+    "failedMsg": {
+        "message": "Failed to load words. Is the backend running?"
+    },
+    "deleteConfirm": {
+        "message": "Are you sure you want to delete \"$1\"?",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showLess": {
+        "message": "Show less"
+    },
+    "andMoreContext": {
+        "message": "...and $1 more context$2",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
+    "wordsOnDate": {
+        "message": "Words on $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "nWordsOnDate": {
+        "message": "$1 word$2 on $3",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            },
+            "3": {
+                "content": "$3"
+            }
+        }
+    },
+    "popupSubtitle": {
+        "message": "Language Learning Assistant"
+    },
+    "accountSection": {
+        "message": "Account"
+    },
+    "preferencesSection": {
+        "message": "Preferences"
+    },
+    "enableExtension": {
+        "message": "Enable Extension"
+    },
+    "openDashboardBtn": {
+        "message": "Open My Dashboard"
+    },
+    "helpLink": {
+        "message": "Help"
+    },
+    "feedbackLink": {
+        "message": "Feedback"
+    },
+    "logoutBtn": {
+        "message": "Logout"
+    },
+    "analyzingTitle": {
+        "message": "Analyzing..."
+    },
+    "gettingInsights": {
+        "message": "Getting insights..."
+    },
+    "errorTitle": {
+        "message": "Error"
+    },
+    "tryAgainBtn": {
+        "message": "Try Again"
+    },
+    "wordAnalysisLabel": {
+        "message": "Word Analysis"
+    },
+    "phraseAnalysisLabel": {
+        "message": "Phrase Analysis"
+    },
+    "meaningLabel": {
+        "message": "MEANING & USAGE"
+    },
+    "grammarLabel": {
+        "message": "GRAMMAR & CONTEXT"
+    },
+    "saveBtn": {
+        "message": "Save"
+    },
+    "savedBtn": {
+        "message": "Saved!"
+    },
+    "loginToSavePrompt": {
+        "message": "Login to save words and track progress"
+    },
+    "loginBtn": {
+        "message": "Login"
+    },
+    "clickHereMsg": {
+        "message": "Word saved! Click here to view in dashboard."
+    },
+    "toastLoginToSave": {
+        "message": "Please Login to Save"
+    },
+    "toastBackendNotConfigured": {
+        "message": "Backend not configured"
+    },
+    "toastFailedToSave": {
+        "message": "Failed to save: $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "toastWordUpdated": {
+        "message": "Word updated!"
+    },
+    "toastContextAdded": {
+        "message": "New context added!"
+    },
+    "toastWordSavedToDashboard": {
+        "message": "Word saved to Dashboard!"
+    },
+    "toastErrorSaving": {
+        "message": "Error saving word"
+    },
+    "toastTranslationLanguageSaved": {
+        "message": "Translation language saved!"
+    },
+    "toastTranslationLanguageError": {
+        "message": "Failed to save language preference. Please try again."
+    }
+}

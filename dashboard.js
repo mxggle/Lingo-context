@@ -40,6 +40,16 @@ async function init() {
     const backendUrl = await getConfig('BACKEND_URL');
     const rootUrl = backendUrl ? backendUrl.replace('/api', '') : '';
 
+    // Load saved interface language first
+    chrome.storage.local.get(['interfaceLanguage'], (result) => {
+        const savedInterfaceLang = result.interfaceLanguage || 'en';
+        const interfaceLangSelect = document.getElementById('interfaceLanguage');
+        if (interfaceLangSelect) {
+            interfaceLangSelect.value = savedInterfaceLang;
+        }
+        loadInterfaceLanguage(savedInterfaceLang);
+    });
+
     // Login handler
     const loginHandler = () => {
         if (rootUrl) location.href = `${rootUrl}/auth/google`;
@@ -59,7 +69,31 @@ async function init() {
         });
     }
 
-    // Check Auth and Toggle Views
+    // Modal Elements
+    const settingsModal = document.getElementById('settingsModal');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            if (settingsModal) settingsModal.classList.add('show');
+        });
+    }
+
+    const closeModal = () => {
+        if (settingsModal) settingsModal.classList.remove('show');
+    };
+
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', closeModal);
+    }
+
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) closeModal();
+        });
+    }
+
     try {
         const res = await fetch(`${backendUrl}/user`, { credentials: 'include' });
         const data = await res.json();
@@ -78,6 +112,16 @@ async function init() {
 
             // Setup Language Preference
             setupLanguagePreference(data.user.target_language || 'English', backendUrl);
+
+            // Setup Interface Language Preference
+            const interfaceLangSelect = document.getElementById('interfaceLanguage');
+            if (interfaceLangSelect) {
+                interfaceLangSelect.addEventListener('change', () => {
+                    const selected = interfaceLangSelect.value;
+                    chrome.storage.local.set({ interfaceLanguage: selected });
+                    loadInterfaceLanguage(selected);
+                });
+            }
 
             // Load Data
             loadData();
@@ -123,13 +167,82 @@ function setupLanguagePreference(currentLanguage, backendUrl) {
             originalLanguage = newLanguage;
 
             // Show success message using toast
-            showToast('Language preference saved!');
+            showToast(getTransl('toastTranslationLanguageSaved') || 'Translation language saved!');
         } catch (error) {
             console.error('Failed to save language preference:', error);
-            showToast('Failed to save language preference. Please try again.');
+            showToast(getTransl('toastTranslationLanguageError') || 'Failed to save language preference. Please try again.');
             languageSelect.value = originalLanguage; // Revert on failure
         }
     });
+}
+
+// ----------------------------------------------------
+// i18n Interface Logic
+// ----------------------------------------------------
+let currentLocaleData = {};
+
+function getTransl(key) {
+    if (currentLocaleData[key] && currentLocaleData[key].message) {
+        return currentLocaleData[key].message;
+    }
+    // Fallback logic could be implemented here if needed
+    return key;
+}
+
+function processTranslPlaceholders(messageTemplate, ...args) {
+    let result = messageTemplate;
+    for (let i = 0; i < args.length; i++) {
+        result = result.replace(new RegExp(`\\$${i + 1}`, 'g'), args[i]);
+    }
+    return result;
+}
+
+async function loadInterfaceLanguage(langCode) {
+    try {
+        const fileUrl = chrome.runtime.getURL(`_locales/${langCode}/messages.json`);
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+            throw new Error(`Locale file not found for ${langCode}`);
+        }
+
+        currentLocaleData = await response.json();
+
+        // Update DOM elements with data-i18n
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (currentLocaleData[key] && currentLocaleData[key].message) {
+                el.textContent = currentLocaleData[key].message;
+            }
+        });
+
+        // Update elements with data-i18n-title
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+            const key = el.getAttribute('data-i18n-title');
+            if (currentLocaleData[key] && currentLocaleData[key].message) {
+                el.title = currentLocaleData[key].message;
+                // Also update title tags inside specifically for tooltips if they exist
+            }
+        });
+
+        // Re-render dynamic content nicely to apply translations
+        if (allWords && allWords.length > 0) {
+            const currentFilterDateLocal = currentFilterDate; // backup
+            if (document.getElementById('dashboardView').style.display === 'block') {
+                if (currentFilterDateLocal) {
+                    filterByDate(currentFilterDateLocal);
+                } else {
+                    renderWordsList(allWords.slice(0, 100));
+                }
+            }
+        }
+
+    } catch (e) {
+        // Fallback to English if load fails
+        if (langCode !== 'en') {
+            loadInterfaceLanguage('en');
+        }
+    }
 }
 
 async function loadData() {
@@ -191,27 +304,30 @@ function renderWordsList(wordsToRender) {
     const list = document.getElementById('wordsList');
 
     if (!wordsToRender || wordsToRender.length === 0) {
-        list.innerHTML = '<div class="loading">No words found.</div>';
+        list.innerHTML = `<div class="loading">${getTransl('noWordsMsg') || 'No words found.'}</div>`;
         return;
     }
+
+    const listenText = getTransl('listenBtn') || 'Listen';
+    const deleteText = getTransl('deleteBtn') || 'Delete';
 
     list.innerHTML = wordsToRender.map((word, index) => `
         <div class="word-card">
             <div class="word-header">
                 <span class="word-text">${escapeHtml(word.text)}</span>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    ${word.lookup_count > 1 ? `<span class="lookup-count">${word.lookup_count}x Lookups</span>` : ''}
+                    ${word.lookup_count > 1 ? `<span class="lookup-count">${word.lookup_count}x</span>` : ''}
                     <button class="play-audio-btn" data-word-index="${index}" data-word-text="${escapeHtml(word.text)}" data-word-lang="${escapeHtml(word.language)}">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                         </svg>
-                        Listen
+                        ${listenText}
                     </button>
                     <button class="delete-btn" data-word-id="${word.id}" data-word-text="${escapeHtml(word.text)}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
                         </svg>
-                        Delete
+                        ${deleteText}
                     </button>
                     <span class="word-lang">${escapeHtml(word.language)}</span>
                 </div>
@@ -316,7 +432,10 @@ function renderContributionGraph(words) {
                 cell.addEventListener('mouseenter', () => {
                     const rect = cell.getBoundingClientRect();
                     const dateDisplay = day.dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                    globalTooltip.textContent = `${day.count} word${day.count !== 1 ? 's' : ''} on ${dateDisplay}`;
+
+                    const templateMsg = getTransl('nWordsOnDate') || '$1 words on $3';
+                    const s = day.count !== 1 ? 's' : '';
+                    globalTooltip.textContent = processTranslPlaceholders(templateMsg, day.count, s, dateDisplay);
 
                     globalTooltip.style.left = `${rect.left + rect.width / 2}px`;
                     globalTooltip.style.top = `${rect.top - 8}px`; // 8px above the cell
@@ -358,7 +477,9 @@ function filterByDate(dateStr) {
         // Just use simple parsing to avoid time zone issues
         const [y, m, d] = dateStr.split('-');
         const displayDate = new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-        title.textContent = `Words on ${displayDate}`;
+
+        const templateMsg = getTransl('wordsOnDate') || `Words on $1`;
+        title.textContent = processTranslPlaceholders(templateMsg, displayDate);
     }
 
     if (clearBtn) {
@@ -375,24 +496,30 @@ function renderContexts(contexts, wordId) {
 
     let html = `<div class="contexts-wrapper">`;
 
+    const sourceText = getTransl('sourceLabel') || 'Source';
+
     // Show first (most recent) context
     if (firstContext.context) {
         html += `<div class="word-context">"${escapeHtml(firstContext.context)}"</div>`;
     }
     if (firstContext.url) {
-        html += `<a href="${escapeHtml(firstContext.url)}" target="_blank" class="context-source">Source</a>`;
+        html += `<a href="${escapeHtml(firstContext.url)}" target="_blank" class="context-source">${sourceText}</a>`;
     }
 
     // Show "and X more" if there are additional contexts
     if (remainingCount > 0) {
-        html += `<div class="context-more" data-word-id="${wordId}" data-original-text="...and ${remainingCount} more context${remainingCount > 1 ? 's' : ''}">...and ${remainingCount} more context${remainingCount > 1 ? 's' : ''}</div>`;
+        const templateMsg = getTransl('andMoreContext') || `...and $1 more context$2`;
+        const s = remainingCount > 1 ? 's' : '';
+        const moreText = processTranslPlaceholders(templateMsg, remainingCount, s);
+
+        html += `<div class="context-more" data-word-id="${wordId}" data-original-text="${escapeHtml(moreText)}">${escapeHtml(moreText)}</div>`;
         html += `<div class="contexts-hidden" id="contexts-${wordId}">`;
         contexts.slice(1).forEach(ctx => {
             if (ctx.context) {
                 html += `<div class="context-item">`;
                 html += `<div class="word-context">"${escapeHtml(ctx.context)}"</div>`;
                 if (ctx.url) {
-                    html += `<a href="${escapeHtml(ctx.url)}" target="_blank" class="context-source">Source</a>`;
+                    html += `<a href="${escapeHtml(ctx.url)}" target="_blank" class="context-source">${sourceText}</a>`;
                 }
                 html += `</div>`;
             }
@@ -437,7 +564,8 @@ function setupEventListeners() {
             const wordText = btn.getAttribute('data-word-text');
 
             // Confirm deletion
-            if (confirm(`Are you sure you want to delete "${wordText}"?`)) {
+            const confirmTemplate = getTransl('deleteConfirm') || `Are you sure you want to delete "$1"?`;
+            if (confirm(processTranslPlaceholders(confirmTemplate, wordText))) {
                 await deleteWord(wordId);
             }
         });
@@ -454,7 +582,8 @@ function setupEventListeners() {
 
             if (hiddenContexts) {
                 const isExpanded = hiddenContexts.classList.toggle('expanded');
-                btn.textContent = isExpanded ? 'Show less' : originalText;
+                const lessText = getTransl('showLess') || 'Show less';
+                btn.textContent = isExpanded ? lessText : originalText;
             }
         });
     });
