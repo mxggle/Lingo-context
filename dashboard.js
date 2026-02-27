@@ -82,8 +82,6 @@ async function init() {
 
 function setupLanguagePreference(currentLanguage, backendUrl) {
     const languageSelect = document.getElementById('targetLanguage');
-    const saveBtn = document.getElementById('saveLanguageBtn');
-    const saveStatus = document.getElementById('languageSaveStatus');
 
     if (!languageSelect) return;
 
@@ -91,19 +89,10 @@ function setupLanguagePreference(currentLanguage, backendUrl) {
     languageSelect.value = currentLanguage;
     let originalLanguage = currentLanguage;
 
-    // Show save button when language changes
-    languageSelect.addEventListener('change', () => {
-        if (languageSelect.value !== originalLanguage) {
-            saveBtn.style.display = 'inline-block';
-            saveStatus.style.display = 'none';
-        } else {
-            saveBtn.style.display = 'none';
-        }
-    });
-
-    // Save language preference
-    saveBtn.addEventListener('click', async () => {
+    // Save language preference when changed
+    languageSelect.addEventListener('change', async () => {
         const newLanguage = languageSelect.value;
+        if (newLanguage === originalLanguage) return;
 
         try {
             const response = await fetch(`${backendUrl}/user/preferences`, {
@@ -115,18 +104,15 @@ function setupLanguagePreference(currentLanguage, backendUrl) {
 
             if (!response.ok) throw new Error('Failed to save preference');
 
-            // Update original value and hide save button
+            // Update original value
             originalLanguage = newLanguage;
-            saveBtn.style.display = 'none';
 
-            // Show success message
-            saveStatus.style.display = 'inline';
-            setTimeout(() => {
-                saveStatus.style.display = 'none';
-            }, 3000);
+            // Show success message using toast
+            showToast('Language preference saved!');
         } catch (error) {
             console.error('Failed to save language preference:', error);
-            alert('Failed to save language preference. Please try again.');
+            showToast('Failed to save language preference. Please try again.');
+            languageSelect.value = originalLanguage; // Revert on failure
         }
     });
 }
@@ -445,4 +431,26 @@ function escapeCSV(str) {
         return `"${text.replace(/"/g, '""')}"`;
     }
     return `"${text}"`;
+}
+
+// Show toast notification
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.appendChild(text);
+
+    document.body.appendChild(toast);
+
+    // Auto-remove after 3 seconds with fade out
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 300); // Wait for fade-out animation
+    }, 3000);
 }
