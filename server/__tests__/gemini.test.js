@@ -1,4 +1,4 @@
-const { analyzeText, calculateCost } = require('../services/gemini');
+const { analyzeText, calculateCost, _clearCacheForTesting } = require('../services/gemini');
 const { fetchWithRetry } = require('../fetchWithRetry');
 const { getSystemInstruction, generatePrompt } = require('../prompts');
 
@@ -17,6 +17,7 @@ describe('gemini.js', () => {
     beforeEach(() => {
         process.env = { ...originalEnv };
         jest.clearAllMocks();
+        _clearCacheForTesting(); // reset in-memory cache so tests don't bleed
     });
 
     afterAll(() => {
@@ -56,7 +57,7 @@ describe('gemini.js', () => {
                 candidates: [{
                     content: {
                         parts: [{
-                            text: '```json\n{ "source_language": "en", "meaning": "hola" }\n```'
+                            text: '```json\n{ "source_language": "en", "meaning": "hola" } \n```'
                         }]
                     }
                 }]
@@ -231,5 +232,60 @@ describe('gemini.js', () => {
             );
             expect(usage.model).toBe('custom-model-alpha');
         });
+    });
+});
+
+// ── Cache behaviour ──────────────────────────────────────────────────────────
+// Uses the same top-level mocks as the gemini.js suite.
+// _clearCacheForTesting() ensures an empty Map before each test.
+
+describe('gemini.js cache', () => {
+    const mockApiResponse = {
+        usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 10, totalTokenCount: 15 },
+        candidates: [{ content: { parts: [{ text: '{"meaning": "hello", "source_language": "en"}' }] } }]
+    };
+
+    beforeEach(() => {
+        process.env.GEMINI_API_KEY = 'test-key';
+        jest.clearAllMocks();
+        _clearCacheForTesting();
+    });
+
+    it('should return cached result on identical lookup (fetchWithRetry called once)', async () => {
+        fetchWithRetry.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+        const params = { text: 'hello', context: 'greet', targetLanguage: 'English' };
+        const first = await analyzeText(params);
+        const second = await analyzeText(params);
+
+        // Gemini should only have been called ONCE; second call hits cache
+        expect(fetchWithRetry).toHaveBeenCalledTimes(1);
+        expect(second).toEqual(first);
+    });
+
+    it('should call Gemini again when targetLanguage differs (cache miss)', async () => {
+        fetchWithRetry.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+        await analyzeText({ text: 'hello', context: 'greet', targetLanguage: 'English' });
+        await analyzeText({ text: 'hello', context: 'greet', targetLanguage: 'Japanese' });
+
+        // Different targetLanguage -> different cache key -> Gemini called twice
+        expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+    });
+
+    it('should expire cache entry after TTL and re-call Gemini', async () => {
+        jest.useFakeTimers();
+        fetchWithRetry.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+        const params = { text: 'hello', context: 'greet', targetLanguage: 'English' };
+        await analyzeText(params);
+
+        // Advance time beyond TTL (10 minutes)
+        jest.advanceTimersByTime(11 * 60 * 1000);
+        await analyzeText(params);
+
+        // Cache expired -> Gemini called again
+        expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+        jest.useRealTimers();
     });
 });

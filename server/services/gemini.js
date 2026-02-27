@@ -4,6 +4,35 @@ const { getSystemInstruction, generatePrompt } = require('../prompts');
 const { fetchWithRetry } = require('../fetchWithRetry');
 const { sendError } = require('../middleware/errorHandler');
 
+// ── In-memory result cache ─────────────────────────────────────────────────
+// Caches the last CACHE_MAX_SIZE unique (text, context, targetLanguage) lookups
+// for CACHE_TTL_MS to avoid re-hitting Gemini for repeat selections.
+const CACHE_MAX_SIZE = 100;
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const _cache = new Map();
+
+function _cacheKey(text, context, targetLanguage) {
+    return `${targetLanguage}:${text}:${String(context)}`;
+}
+
+function _cacheGet(key) {
+    const entry = _cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > CACHE_TTL_MS) {
+        _cache.delete(key);
+        return null;
+    }
+    return entry.value;
+}
+
+function _cacheSet(key, value) {
+    // Evict oldest entry when at capacity
+    if (_cache.size >= CACHE_MAX_SIZE) {
+        _cache.delete(_cache.keys().next().value);
+    }
+    _cache.set(key, { value, ts: Date.now() });
+}
+
 // Cost calculation (rates per 1M tokens for Gemini Flash)
 function calculateCost(promptTokens, completionTokens) {
     const RATE_INPUT = 0.10;
@@ -13,8 +42,11 @@ function calculateCost(promptTokens, completionTokens) {
     return inputCost + outputCost;
 }
 
-// Call Gemini API and return parsed result
+// Call Gemini API and return parsed result (cache-aware)
 async function analyzeText({ text, context, targetLanguage }) {
+    const cacheKey = _cacheKey(text, context, targetLanguage);
+    const cached = _cacheGet(cacheKey);
+    if (cached) return cached;
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         throw Object.assign(new Error('Server configuration error: API Key missing'), { status: 500 });
@@ -38,7 +70,7 @@ async function analyzeText({ text, context, targetLanguage }) {
                 temperature: 0.3,
                 topK: 40,
                 topP: 0.95,
-                maxOutputTokens: 1024,
+                maxOutputTokens: 512,
             }
         })
     });
@@ -90,10 +122,12 @@ async function analyzeText({ text, context, targetLanguage }) {
         result.furigana = text;
     }
 
-    return {
+    const response2 = {
         result,
         usage: { model, promptTokens, completionTokens, totalTokens, cost }
     };
+    _cacheSet(cacheKey, response2);
+    return response2;
 }
 
-module.exports = { analyzeText, calculateCost };
+module.exports = { analyzeText, calculateCost, _clearCacheForTesting: () => _cache.clear() };
