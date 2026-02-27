@@ -312,7 +312,7 @@ function renderWordsList(wordsToRender) {
     const deleteText = getTransl('deleteBtn') || 'Delete';
 
     list.innerHTML = wordsToRender.map((word, index) => `
-        <div class="word-card">
+        <div class="word-card" data-word-id="${word.id}">
             <div class="word-header">
                 <span class="word-text">${escapeHtml(word.text)}</span>
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -657,8 +657,34 @@ async function deleteWord(wordId) {
             throw new Error('Failed to delete word');
         }
 
-        // Refresh the word list after successful deletion
-        await loadData();
+        // Remove the word card from DOM directly without refreshing the list
+        const wordCard = document.querySelector(`.word-card[data-word-id="${wordId}"]`);
+        if (wordCard) {
+            wordCard.style.transition = 'opacity 0.3s, transform 0.3s';
+            wordCard.style.opacity = '0';
+            wordCard.style.transform = 'translateX(-20px)';
+            wordCard.addEventListener('transitionend', () => {
+                wordCard.remove();
+                
+                // Check if list is now empty and show message
+                const remainingCards = document.querySelectorAll('.word-card');
+                if (remainingCards.length === 0) {
+                    const list = document.getElementById('wordsList');
+                    list.innerHTML = `<div class="loading">${getTransl('noWordsMsg') || 'No words found.'}</div>`;
+                }
+            }, { once: true });
+        }
+
+        // Update total words count in stats
+        const totalWordsEl = document.getElementById('totalWords');
+        if (totalWordsEl) {
+            const currentCount = parseInt(totalWordsEl.textContent) || 0;
+            if (currentCount > 0) {
+                totalWordsEl.textContent = currentCount - 1;
+            }
+        }
+
+        showToast(getTransl('deleteSuccess') || 'Word deleted');
     } catch (error) {
         console.error('Delete error:', error);
         alert('Failed to delete word. Please try again.');
