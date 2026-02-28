@@ -654,6 +654,24 @@ function getSurroundingContext(selection) {
       parent = parent.parentElement;
     }
 
+    let contextParts = [];
+
+    // Add page context (title + URL + hostname)
+    const pageTitle = document.title?.trim();
+    const pageUrl = window.location.hostname;
+    const pageMetaDesc = document.querySelector('meta[name="description"]')?.content;
+
+    if (pageTitle) {
+      contextParts.push(`[Page Title: ${pageTitle}]`);
+    }
+    if (pageUrl) {
+      contextParts.push(`[Website: ${pageUrl}]`);
+    }
+    if (pageMetaDesc) {
+      contextParts.push(`[Description: ${pageMetaDesc.slice(0, 200)}]`);
+    }
+
+    // Add surrounding text context
     if (parent) {
       const fullText = parent.textContent || '';
       const selectedText = selection.toString();
@@ -662,11 +680,11 @@ function getSurroundingContext(selection) {
       if (index !== -1) {
         const start = Math.max(0, index - CONFIG.CONTEXT_LENGTH);
         const end = Math.min(fullText.length, index + selectedText.length + CONFIG.CONTEXT_LENGTH);
-        return fullText.substring(start, end);
+        contextParts.push(fullText.substring(start, end));
       }
     }
 
-    return selection.toString();
+    return contextParts.join('\n');
   } catch (e) {
     return selection.toString();
   }
@@ -795,7 +813,7 @@ function showPopup(rect, text, mode) {
 const STREAMING_KEYS = ['meaning', 'grammar', 'furigana', 'audio_text', 'language'];
 const STREAMING_REGEXES = {};
 for (const key of STREAMING_KEYS) {
-    STREAMING_REGEXES[key] = new RegExp('"' + key + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)');
+  STREAMING_REGEXES[key] = new RegExp('"' + key + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)');
 }
 
 function extractStreamingJson(str) {

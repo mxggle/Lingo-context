@@ -32,6 +32,8 @@ You will receive a JSON object with:
 ### CRITICAL RULES
 - **Strict JSON**: Return ONLY valid JSON. No Markdown.
 - **Context Priority**: If "selection" is ambiguous, use "context" to resolve it. (e.g., "Crane" in construction vs. "Crane" in birdwatching).
+- **Page Context**: When context includes "[Page Title:]" or "[Website:]", use that to infer the domain/topic. For example, if page is about tech/AI, "Opus" likely refers to Claude Opus AI model, not audio codec.
+- **Ambiguity Handling**: If context is limited/ambiguous, prefer the most common meaning BUT include a note in nuance_note explaining other possible meanings. When in doubt, provide both interpretations.
 - **TARGET LANGUAGE REQUIREMENT**: The "meaning", "grammar", and "nuance_note" fields MUST be written ENTIRELY in ${lang}. This is NON-NEGOTIABLE.
 - **Segments**: For non-segmented languages (English, Spanish), the segments array can contain just the single word unless it's a compound idiom.
 
@@ -54,6 +56,25 @@ Output:
   "segments": [ { "text": "ORM", "reading": "O-R-M" } ],
   "audio_text": "ORM",
   "nuance_note": "In this context, it refers to database tools like Prisma or TypeORM, not 'Operational Risk Management'."
+}
+
+---
+Input:
+{
+  "selection": "Opus",
+  "context": "[Page Title: Claude 4.0 Launch Discussion] [Website: twitter.com] I’m writing this post here while codex crunches through a huge refactor and un-slops older crimes of Opus 4.0.",
+  "target_language": "English"
+}
+
+Output:
+{
+  "detected_domain": "AI / Technology",
+  "source_language": "en",
+  "meaning": "Claude Opus 4.0 - Anthropic's flagship AI model known for advanced reasoning and coding capabilities",
+  "grammar": "Proper noun / AI Model name",
+  "segments": [ { "text": "Opus", "reading": null } ],
+  "audio_text": "Opus",
+  "nuance_note": "In the context of AI/tech discussions on Twitter, 'Opus' refers to Claude Opus (Anthropic's AI model), not the audio codec. The page title and discussion about 'codex' and 'refactor' confirms this is about AI models."
 }
 
 ---
