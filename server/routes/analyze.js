@@ -2,11 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { ensureAuthenticated } = require('../middleware/auth');
 const { sendError } = require('../middleware/errorHandler');
 const { analyzeText } = require('../services/gemini');
 
-router.post('/', ensureAuthenticated, async (req, res) => {
+router.post('/', async (req, res) => {
     const { text, context, mode } = req.body;
 
     // Input validation
@@ -18,19 +17,22 @@ router.post('/', ensureAuthenticated, async (req, res) => {
     }
 
     // Use user's preferred target language if not specified in request
-    const targetLanguage = req.body.targetLanguage || req.user.target_language || 'English';
+    const targetLanguage = req.body.targetLanguage || (req.user ? req.user.target_language : null) || 'English';
 
     try {
         const { result, usage } = await analyzeText({ text, context, targetLanguage });
 
         // Log usage to DB (non-blocking — don't fail request if logging fails)
-        try {
-            await db.query(
-                'INSERT INTO usage_logs (user_id, model, prompt_tokens, completion_tokens, total_tokens, cost_usd) VALUES (?, ?, ?, ?, ?, ?)',
-                [req.user.id, usage.model, usage.promptTokens, usage.completionTokens, usage.totalTokens, usage.cost]
-            );
-        } catch (logError) {
-            console.error('Failed to log usage:', logError);
+        // Only log if user is authenticated
+        if (req.user) {
+            try {
+                await db.query(
+                    'INSERT INTO usage_logs (user_id, model, prompt_tokens, completion_tokens, total_tokens, cost_usd) VALUES (?, ?, ?, ?, ?, ?)',
+                    [req.user.id, usage.model, usage.promptTokens, usage.completionTokens, usage.totalTokens, usage.cost]
+                );
+            } catch (logError) {
+                console.error('Failed to log usage:', logError);
+            }
         }
 
         res.json(result);

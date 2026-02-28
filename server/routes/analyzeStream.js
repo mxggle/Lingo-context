@@ -2,10 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { ensureAuthenticated } = require('../middleware/auth');
 const { analyzeTextStream } = require('../services/geminiStream');
 
-router.post('/', ensureAuthenticated, async (req, res) => {
+router.post('/', async (req, res) => {
     const { text, context } = req.body;
 
     // Input validation
@@ -26,13 +25,14 @@ router.post('/', ensureAuthenticated, async (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no');
 
     // Use user's preferred target language if not specified in request
-    const targetLanguage = req.body.targetLanguage || req.user.target_language || 'English';
+    const targetLanguage = req.body.targetLanguage || (req.user ? req.user.target_language : null) || 'English';
 
     try {
         const usage = await analyzeTextStream({ text, context, targetLanguage }, res);
 
         // Log usage to DB (non-blocking — don't fail request if logging fails)
-        if (usage) {
+        // Only log if user is authenticated
+        if (req.user && usage) {
             try {
                 await db.query(
                     'INSERT INTO usage_logs (user_id, model, prompt_tokens, completion_tokens, total_tokens, cost_usd) VALUES (?, ?, ?, ?, ?, ?)',
