@@ -3,7 +3,43 @@
 const { getSystemInstruction, generatePrompt } = require('../prompts');
 const { fetchWithRetry } = require('../fetchWithRetry');
 
+const CACHE_MAX_SIZE = 100;
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const _cache = new Map();
+
+function _cacheKey(text, context, targetLanguage) {
+    return `${targetLanguage}:${text}:${String(context)}`;
+}
+
+function _cacheGet(key) {
+    const entry = _cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > CACHE_TTL_MS) {
+        _cache.delete(key);
+        return null;
+    }
+    return entry.value;
+}
+
+function _cacheSet(key, value) {
+    if (_cache.size >= CACHE_MAX_SIZE) {
+        _cache.delete(_cache.keys().next().value);
+    }
+    _cache.set(key, { value, ts: Date.now() });
+}
+
 async function analyzeTextStream({ text, context, targetLanguage }, res) {
+    const cacheKey = _cacheKey(text, context, targetLanguage);
+    const cached = _cacheGet(cacheKey);
+    if (cached) {
+        for (const chunk of cached) {
+            res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         throw Object.assign(new Error('Server configuration error: API Key missing'), { status: 500 });
@@ -51,6 +87,7 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
 
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
+        const chunks = [];
 
         for await (const value of response.body) {
             buffer += decoder.decode(value, { stream: true });
@@ -70,7 +107,7 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
                         if (candidates && candidates.length > 0) {
                             const textPart = candidates[0].content?.parts?.[0]?.text;
                             if (textPart) {
-                                // Forward textPart directly as SSE data
+                                chunks.push(textPart);
                                 res.write(`data: ${JSON.stringify({ text: textPart })}\n\n`);
                             }
                         }
@@ -79,6 +116,10 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
                     }
                 }
             }
+        }
+
+        if (chunks.length > 0) {
+            _cacheSet(cacheKey, chunks);
         }
 
     } catch (error) {
@@ -94,4 +135,4 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
     }
 }
 
-module.exports = { analyzeTextStream };
+module.exports = { analyzeTextStream, _clearCacheForTesting: () => _cache.clear() };
