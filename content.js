@@ -26,9 +26,9 @@ let interfaceLanguage = 'en';
 // Initialize the extension
 let isExtensionEnabled = true;
 
-function init() {
+async function init() {
   // Check for auth data from success page (for login flow)
-  checkForAuthData();
+  await checkForAuthData();
 
   // Load language preference and settings
   chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage'], async (result) => {
@@ -94,11 +94,31 @@ function processTranslPlaceholders(messageTemplate, ...args) {
   return result;
 }
 
+async function getAllowedAuthOrigins() {
+  const stored = await chrome.storage.local.get('BACKEND_URL');
+  const backendUrl = stored.BACKEND_URL || 'https://lingo-context-api.vercel.app/api';
+  const rootUrl = backendUrl.replace('/api', '');
+
+  const allowedOrigins = new Set();
+  try {
+    allowedOrigins.add(new URL(rootUrl).origin);
+  } catch (e) {
+    // Ignore malformed URLs and fall back to known production origin.
+  }
+  allowedOrigins.add('https://lingo-context-api.vercel.app');
+  return allowedOrigins;
+}
+
 // Check for auth data embedded in the page (from /auth/success)
-function checkForAuthData() {
+async function checkForAuthData() {
   const authDataEl = document.getElementById('lingocontext-auth-data');
   if (authDataEl) {
     try {
+      const allowedOrigins = await getAllowedAuthOrigins();
+      if (!allowedOrigins.has(window.location.origin)) {
+        return;
+      }
+
       const userData = JSON.parse(authDataEl.getAttribute('data-user'));
       if (userData && userData.id) {
         // Store user data in chrome.storage.local for popup/dashboard to use

@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "LingoContext — Context-Aware AI Translator",
-    "version": "1.0.2",
+    "version": "1.2.0",
     "description": "Instant context, grammar, and pronunciation for language learners using AI",
     "default_locale": "en",
     "permissions": [
@@ -9,7 +9,7 @@
         "storage"
     ],
     "host_permissions": [
-        "<all_urls>"
+        "https://lingo-context-api.vercel.app/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -40,5 +40,15 @@
         "48": "icons/icon48.png",
         "96": "icons/icon96.png",
         "128": "icons/icon128.png"
-    }
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "_locales/*/messages.json"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
 }

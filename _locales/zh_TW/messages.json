@@ -97,6 +97,9 @@
             }
         }
     },
+    "deleteSuccess": {
+        "message": "單字已刪除"
+    },
     "showLess": {
         "message": "收起"
     },

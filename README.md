@@ -109,13 +109,50 @@ docker-compose up --build
 
 ## 📦 Packaging for Release
 
-To create a clean `.zip` file for the Chrome Web Store:
+### Option 1: Quick Build
 
 ```bash
 npm run package
 ```
 
-This creates `extension.zip` in the root directory, excluding development files (`node_modules`, `server`, `.git`, etc).
+This creates `extension.zip` in the root directory.
+
+### Option 2: Production Build
+
+```bash
+npm run build:prod
+```
+
+This creates `lingocontext-production.zip` with all production configurations applied.
+
+## 🌐 Chrome Web Store Deployment
+
+### Pre-submission Checklist
+
+1. **Update Version**: Bump version in `manifest.json` and `package.json`
+2. **Test the Extension**:
+   - Load unpacked extension in Chrome
+   - Test all features: text selection, popup, dashboard, login
+3. **Privacy Policy**: Required for store submission
+   - Host at: `https://your-domain.com/privacy.html`
+   - Include: data collection, storage, third-party services
+4. **Screenshots**: Prepare 1-4 screenshots (1280x800 or 640x400)
+5. **Store Listing**:
+   - Short description: Max 132 characters
+   - Long description: Max 10000 characters
+
+### Publishing Steps
+
+1. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+2. Create new item and upload the `.zip` file
+3. Fill in store listing details
+4. Submit for review
+
+### Extension Permissions
+
+- `storage`: For saving user preferences
+- `tts`: For text-to-speech functionality
+- Host access to backend API (vercel.app and localhost)
 
 ## 🖥️ Usage
 

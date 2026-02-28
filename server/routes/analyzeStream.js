@@ -1,6 +1,7 @@
 // Analyze route — AI text analysis proxy (Streaming)
 const express = require('express');
 const router = express.Router();
+const db = require('../db');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { analyzeTextStream } = require('../services/geminiStream');
 
@@ -28,7 +29,19 @@ router.post('/', ensureAuthenticated, async (req, res) => {
     const targetLanguage = req.body.targetLanguage || req.user.target_language || 'English';
 
     try {
-        await analyzeTextStream({ text, context, targetLanguage }, res);
+        const usage = await analyzeTextStream({ text, context, targetLanguage }, res);
+
+        // Log usage to DB (non-blocking — don't fail request if logging fails)
+        if (usage) {
+            try {
+                await db.query(
+                    'INSERT INTO usage_logs (user_id, model, prompt_tokens, completion_tokens, total_tokens, cost_usd) VALUES (?, ?, ?, ?, ?, ?)',
+                    [req.user.id, usage.model, usage.promptTokens, usage.completionTokens, usage.totalTokens, usage.cost]
+                );
+            } catch (logError) {
+                console.error('Failed to log usage:', logError);
+            }
+        }
     } catch (error) {
         console.error('API Error in analyzeStream:', error);
         res.write(`data: ${JSON.stringify({ error: true, message: error.message })}\n\n`);

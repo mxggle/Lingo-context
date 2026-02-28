@@ -657,6 +657,19 @@ async function deleteWord(wordId) {
             throw new Error('Failed to delete word');
         }
 
+        // Keep in-memory state in sync with backend so exports/filters/graph are accurate.
+        allWords = allWords.filter(word => String(word.id) !== String(wordId));
+        renderContributionGraph(allWords);
+
+        if (currentFilterDate) {
+            const filteredWords = allWords.filter(word => {
+                const d = new Date(word.saved_at);
+                const wordDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return wordDateStr === currentFilterDate;
+            });
+            renderWordsList(filteredWords);
+        }
+
         // Remove the word card from DOM directly without refreshing the list
         const wordCard = document.querySelector(`.word-card[data-word-id="${wordId}"]`);
         if (wordCard) {
@@ -684,7 +697,8 @@ async function deleteWord(wordId) {
             }
         }
 
-        showToast(getTransl('deleteSuccess') || 'Word deleted');
+        const deleteSuccessText = getTransl('deleteSuccess');
+        showToast(deleteSuccessText !== 'deleteSuccess' ? deleteSuccessText : 'Word deleted');
     } catch (error) {
         console.error('Delete error:', error);
         alert('Failed to delete word. Please try again.');

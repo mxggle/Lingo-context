@@ -28,16 +28,25 @@ function _cacheSet(key, value) {
     _cache.set(key, { value, ts: Date.now() });
 }
 
+function calculateCost(promptTokens, completionTokens) {
+    const RATE_INPUT = 0.10;
+    const RATE_OUTPUT = 0.40;
+    const inputCost = (promptTokens / 1000000) * RATE_INPUT;
+    const outputCost = (completionTokens / 1000000) * RATE_OUTPUT;
+    return inputCost + outputCost;
+}
+
 async function analyzeTextStream({ text, context, targetLanguage }, res) {
     const cacheKey = _cacheKey(text, context, targetLanguage);
     const cached = _cacheGet(cacheKey);
     if (cached) {
-        for (const chunk of cached) {
+        const cachedChunks = Array.isArray(cached) ? cached : (cached.chunks || []);
+        for (const chunk of cachedChunks) {
             res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
         }
         res.write('data: [DONE]\n\n');
         res.end();
-        return;
+        return Array.isArray(cached) ? null : (cached.usage || null);
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -54,6 +63,7 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
+    let usageForLogging = null;
 
     try {
         const response = await fetchWithRetry(apiUrl, {
@@ -103,6 +113,20 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
 
                     try {
                         const parsed = JSON.parse(dataStr);
+                        const usage = parsed.usageMetadata;
+                        if (usage) {
+                            const promptTokens = usage.promptTokenCount || 0;
+                            const completionTokens = usage.candidatesTokenCount || 0;
+                            const totalTokens = usage.totalTokenCount || 0;
+                            usageForLogging = {
+                                model,
+                                promptTokens,
+                                completionTokens,
+                                totalTokens,
+                                cost: calculateCost(promptTokens, completionTokens)
+                            };
+                        }
+
                         const candidates = parsed.candidates;
                         if (candidates && candidates.length > 0) {
                             const textPart = candidates[0].content?.parts?.[0]?.text;
@@ -119,7 +143,7 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
         }
 
         if (chunks.length > 0) {
-            _cacheSet(cacheKey, chunks);
+            _cacheSet(cacheKey, { chunks, usage: usageForLogging });
         }
 
     } catch (error) {
@@ -133,6 +157,8 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
         res.write('data: [DONE]\n\n');
         res.end();
     }
+
+    return usageForLogging;
 }
 
 module.exports = { analyzeTextStream, _clearCacheForTesting: () => _cache.clear() };

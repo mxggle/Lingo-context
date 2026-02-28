@@ -97,6 +97,9 @@
             }
         }
     },
+    "deleteSuccess": {
+        "message": "Word deleted"
+    },
     "showLess": {
         "message": "Show less"
     },

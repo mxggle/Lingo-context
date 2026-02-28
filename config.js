@@ -9,15 +9,15 @@ export const CONFIG = {
   BACKEND_URL: 'https://lingo-context-api.vercel.app/api',
 
   // TTS Configuration
-  TTS_RATE: 0.9, // Slightly slower for learners
+  TTS_RATE: 0.9,
   TTS_PITCH: 1.0,
 
   // Selection Configuration
-  WORD_THRESHOLD: 3, // Words <= this are treated as "word mode"
-  CONTEXT_LENGTH: 150, // Characters of surrounding context to include
+  WORD_THRESHOLD: 3,
+  CONTEXT_LENGTH: 150,
 
-  // Development
-  DEV_MODE: false, // Set to false in production
+  // Development - set to false for production
+  DEV_MODE: false,
 };
 
 // Get config value from storage or use default

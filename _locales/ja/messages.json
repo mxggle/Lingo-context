@@ -97,6 +97,9 @@
             }
         }
     },
+    "deleteSuccess": {
+        "message": "単語を削除しました"
+    },
     "showLess": {
         "message": "少なく表示"
     },
