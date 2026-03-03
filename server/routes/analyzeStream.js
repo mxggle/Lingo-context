@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { analyzeTextStream } = require('../services/geminiStream');
+const { analyzeTextStream } = require('../services/aiStreamService');
 
 router.post('/', async (req, res) => {
     const { text, context } = req.body;

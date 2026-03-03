@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { sendError } = require('../middleware/errorHandler');
-const { analyzeText } = require('../services/gemini');
+const { analyzeText } = require('../services/aiService');
 
 router.post('/', async (req, res) => {
     const { text, context, mode } = req.body;

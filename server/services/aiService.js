@@ -1,12 +1,11 @@
-// Gemini AI service — encapsulates all AI interaction logic
+// AI Service — provider-agnostic text analysis with caching
 
 const { getSystemInstruction, generatePrompt } = require('../prompts');
-const { fetchWithRetry } = require('../fetchWithRetry');
-const { sendError } = require('../middleware/errorHandler');
+const { getProvider } = require('./providers');
 
 // ── In-memory result cache ─────────────────────────────────────────────────
 // Caches the last CACHE_MAX_SIZE unique (text, context, targetLanguage) lookups
-// for CACHE_TTL_MS to avoid re-hitting Gemini for repeat selections.
+// for CACHE_TTL_MS to avoid re-hitting the AI provider for repeat selections.
 const CACHE_MAX_SIZE = 100;
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const _cache = new Map();
@@ -33,7 +32,7 @@ function _cacheSet(key, value) {
     _cache.set(key, { value, ts: Date.now() });
 }
 
-// Cost calculation (rates per 1M tokens for Gemini Flash)
+// Cost calculation (rates per 1M tokens — Gemini Flash default rates)
 function calculateCost(promptTokens, completionTokens) {
     const RATE_INPUT = 0.10;
     const RATE_OUTPUT = 0.40;
@@ -42,60 +41,19 @@ function calculateCost(promptTokens, completionTokens) {
     return inputCost + outputCost;
 }
 
-// Call Gemini API and return parsed result (cache-aware)
+// Call AI provider and return parsed result (cache-aware)
 async function analyzeText({ text, context, targetLanguage }) {
     const cacheKey = _cacheKey(text, context, targetLanguage);
     const cached = _cacheGet(cacheKey);
     if (cached) return cached;
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        throw Object.assign(new Error('Server configuration error: API Key missing'), { status: 500 });
-    }
 
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
+    const provider = getProvider();
     const systemInstruction = getSystemInstruction(targetLanguage);
     const prompt = generatePrompt(text, context, targetLanguage);
 
-    const response = await fetchWithRetry(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{
-                role: 'user',
-                parts: [{ text: systemInstruction + '\n\n' + prompt }]
-            }],
-            generationConfig: {
-                temperature: 0.3,
-                topK: 40,
-                topP: 0.95,
-                maxOutputTokens: 512,
-            }
-        })
-    });
+    const { contentText, usage } = await provider.callAPI(systemInstruction, prompt);
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        const errMsg = error.error?.message || 'Gemini API request failed';
-        if (response.status === 429) {
-            throw Object.assign(new Error('AI service is busy. Please try again in a few seconds.'), { status: 429 });
-        }
-        throw new Error(errMsg);
-    }
-
-    const data = await response.json();
-
-    // Extract usage metadata
-    const usage = data.usageMetadata || {};
-    const promptTokens = usage.promptTokenCount || 0;
-    const completionTokens = usage.candidatesTokenCount || 0;
-    const totalTokens = usage.totalTokenCount || 0;
-    const cost = calculateCost(promptTokens, completionTokens);
-
-    // Extract content
-    const contentText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!contentText) throw new Error('No content in response');
+    const cost = calculateCost(usage.promptTokens, usage.completionTokens);
 
     // Parse JSON from content
     const jsonMatch = contentText.match(/\{[\s\S]*\}/);
@@ -124,7 +82,7 @@ async function analyzeText({ text, context, targetLanguage }) {
 
     const response2 = {
         result,
-        usage: { model, promptTokens, completionTokens, totalTokens, cost }
+        usage: { ...usage, cost }
     };
     _cacheSet(cacheKey, response2);
     return response2;
