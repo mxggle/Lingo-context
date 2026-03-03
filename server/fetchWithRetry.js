@@ -37,7 +37,7 @@ async function fetchWithRetry(url, options, {
             if (attempt < maxRetries) {
                 const jitter = Math.random() * 1000;
                 const delay = Math.min(initialDelay * Math.pow(backoffMultiplier, attempt) + jitter, maxDelay);
-                console.warn(`[Retry] Gemini API returned ${response.status}. Attempt ${attempt + 1}/${maxRetries}, retrying in ${(delay / 1000).toFixed(1)}s...`);
+                console.warn(`[Retry]  API returned ${response.status}. Attempt ${attempt + 1}/${maxRetries}, retrying in ${(delay / 1000).toFixed(1)}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         } catch (networkError) {
