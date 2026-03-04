@@ -2,10 +2,12 @@
 
 const geminiProvider = require('./gemini');
 const openrouterProvider = require('./openrouter');
+const codexProvider = require('./codex');
 
 const providers = {
     gemini: geminiProvider,
     openrouter: openrouterProvider,
+    codex: codexProvider,
 };
 
 /**
