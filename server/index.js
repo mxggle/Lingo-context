@@ -6,6 +6,7 @@ const MySQLStore = require('express-mysql-session')(session);
 const path = require('path');
 const db = require('./db');
 const passport = require('./auth');
+const geminiCache = require('./services/geminiCacheService');
 
 // Middleware
 const { createCsrfMiddleware } = require('./middleware/auth');
@@ -123,6 +124,15 @@ app.use('/api/user', userRoutes);
 // Add a redirect for backward compatibility
 app.get('/api/stats', (req, res) => res.redirect(307, '/api/user/stats'));
 
+// --- Cache status (debug endpoint) ---
+app.get('/api/cache/status', (req, res) => {
+    res.json({
+        explicitCaches: geminiCache.getStatus(),
+        provider: process.env.AI_PROVIDER || 'gemini',
+        explicitCacheEnabled: process.env.GEMINI_EXPLICIT_CACHE !== 'false',
+    });
+});
+
 // --- Centralized error handler (must be last) ---
 app.use(errorHandler);
 
@@ -133,5 +143,14 @@ if (require.main === module) {
         console.log(`Backend server running on http://localhost:${PORT}`);
     });
 }
+
+// --- Graceful shutdown: clean up explicit caches ---
+const gracefulShutdown = async (signal) => {
+    console.log(`\n${signal} received. Cleaning up...`);
+    await geminiCache.cleanupAll().catch(() => { });
+    process.exit(0);
+};
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 module.exports = app;

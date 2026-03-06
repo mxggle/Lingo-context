@@ -60,7 +60,8 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
 
     try {
         const { response, model } = await provider.callStreamAPI(systemInstruction, prompt, {
-            signal: controller.signal
+            signal: controller.signal,
+            targetLanguage,
         });
 
         clearTimeout(timeoutId);

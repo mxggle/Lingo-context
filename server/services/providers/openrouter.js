@@ -1,6 +1,7 @@
 // OpenRouter AI Provider — OpenAI-compatible API format
 
 const { fetchWithRetry } = require('../../fetchWithRetry');
+const { logCacheMetrics } = require('../promptCacheManager');
 
 const PROVIDER_NAME = 'openrouter';
 const BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -60,6 +61,8 @@ async function callAPI(systemInstruction, prompt, options = {}) {
     const data = await response.json();
 
     const usage = data.usage || {};
+    logCacheMetrics(PROVIDER_NAME, usage);
+
     const promptTokens = usage.prompt_tokens || 0;
     const completionTokens = usage.completion_tokens || 0;
     const totalTokens = usage.total_tokens || (promptTokens + completionTokens);
@@ -122,6 +125,7 @@ function parseSSEData(dataStr) {
 
         // Final chunk may include usage stats
         if (parsed.usage) {
+            logCacheMetrics(PROVIDER_NAME, parsed.usage);
             usage = {
                 promptTokens: parsed.usage.prompt_tokens || 0,
                 completionTokens: parsed.usage.completion_tokens || 0,

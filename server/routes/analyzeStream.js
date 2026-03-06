@@ -3,8 +3,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { analyzeTextStream } = require('../services/aiStreamService');
+const { logger } = require('../logger');
 
 router.post('/', async (req, res) => {
+    const start = Date.now();
     const { text, context } = req.body;
 
     // Input validation
@@ -42,7 +44,22 @@ router.post('/', async (req, res) => {
                 console.error('Failed to log usage:', logError);
             }
         }
+
+        logger.info({
+            route: 'POST /api/analyze/stream',
+            userId: req.user?.id,
+            textLength: text.length,
+            targetLanguage,
+            tokens: usage?.totalTokens,
+            duration: Date.now() - start
+        });
     } catch (error) {
+        logger.error({
+            route: 'POST /api/analyze/stream',
+            userId: req.user?.id,
+            error: error.message,
+            duration: Date.now() - start
+        });
         console.error('API Error in analyzeStream:', error);
         res.write(`data: ${JSON.stringify({ error: true, message: error.message })}\n\n`);
         res.end();

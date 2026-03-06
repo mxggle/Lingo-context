@@ -4,8 +4,10 @@ const router = express.Router();
 const db = require('../db');
 const { sendError } = require('../middleware/errorHandler');
 const { analyzeText } = require('../services/aiService');
+const { logger } = require('../logger');
 
 router.post('/', async (req, res) => {
+    const start = Date.now();
     const { text, context, mode } = req.body;
 
     // Input validation
@@ -35,9 +37,25 @@ router.post('/', async (req, res) => {
             }
         }
 
+        logger.info({
+            route: 'POST /api/analyze',
+            userId: req.user?.id,
+            textLength: text.length,
+            targetLanguage,
+            tokens: usage?.totalTokens,
+            duration: Date.now() - start
+        });
+
         res.json(result);
 
     } catch (error) {
+        logger.error({
+            route: 'POST /api/analyze',
+            userId: req.user?.id,
+            error: error.message,
+            status: error.status || 500,
+            duration: Date.now() - start
+        });
         console.error('API Error:', error);
         sendError(res, error.status || 500, error.message);
     }

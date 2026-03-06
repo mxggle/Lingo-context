@@ -4,6 +4,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const passport = require('../auth');
+const { logger } = require('../logger');
 
 // Load the auth success HTML template once at startup
 const successTemplate = fs.readFileSync(
@@ -20,6 +21,7 @@ router.get('/google',
 router.get('/google/callback',
     passport.authenticate('google', { failureRedirect: '/login_failed' }),
     (req, res) => {
+        logger.info({ route: 'GET /auth/google/callback', userId: req.user?.id, success: true });
         res.redirect('/auth/success');
     }
 );
@@ -41,8 +43,10 @@ router.get('/success', (req, res) => {
 
 // Logout
 router.get('/logout', (req, res, next) => {
+    const userId = req.user?.id;
     req.logout((err) => {
         if (err) return next(err);
+        logger.info({ route: 'GET /auth/logout', userId, success: true });
         res.json({ success: true });
     });
 });

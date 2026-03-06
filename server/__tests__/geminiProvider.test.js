@@ -1,8 +1,12 @@
-const { callAPI, callStreamAPI, parseSSEData, PROVIDER_NAME } = require('../services/providers/gemini');
+const { callAPI, callStreamAPI, parseSSEData, buildRequest, PROVIDER_NAME } = require('../services/providers/gemini');
 const { fetchWithRetry } = require('../fetchWithRetry');
 
 jest.mock('../fetchWithRetry', () => ({
     fetchWithRetry: jest.fn()
+}));
+
+jest.mock('../services/promptCacheManager', () => ({
+    logCacheMetrics: jest.fn()
 }));
 
 describe('Gemini Provider', () => {
@@ -20,6 +24,58 @@ describe('Gemini Provider', () => {
 
     it('should have correct provider name', () => {
         expect(PROVIDER_NAME).toBe('gemini');
+    });
+
+    describe('buildRequest', () => {
+        it('should use systemInstruction field separate from contents', () => {
+            const { body } = buildRequest('system text', 'user prompt');
+
+            // systemInstruction must be its own field
+            expect(body.systemInstruction).toEqual({
+                parts: [{ text: 'system text' }]
+            });
+
+            // contents should only have the user prompt, NOT the system instruction
+            expect(body.contents).toEqual([{
+                role: 'user',
+                parts: [{ text: 'user prompt' }]
+            }]);
+
+            // Must NOT contain the old broken cachedContent field
+            expect(body.cachedContent).toBeUndefined();
+        });
+
+        it('should NOT contain cachedContent property', () => {
+            process.env.GEMINI_ENABLE_CACHE = 'true';
+            process.env.GEMINI_CACHED_CONTENT_NAME = 'some-name';
+
+            const { body } = buildRequest('sys', 'prompt');
+            expect(body.cachedContent).toBeUndefined();
+        });
+
+        it('should use generateContent URL for non-stream', () => {
+            const { url } = buildRequest('sys', 'prompt');
+            expect(url).toContain(':generateContent');
+            expect(url).not.toContain('streamGenerateContent');
+        });
+
+        it('should use streamGenerateContent URL for stream', () => {
+            const { url } = buildRequest('sys', 'prompt', { stream: true });
+            expect(url).toContain(':streamGenerateContent');
+            expect(url).toContain('alt=sse');
+        });
+
+        it('should use custom model from env', () => {
+            process.env.GEMINI_MODEL = 'custom-model';
+            const { url, model } = buildRequest('sys', 'prompt');
+            expect(url).toContain('models/custom-model:');
+            expect(model).toBe('custom-model');
+        });
+
+        it('should throw if GEMINI_API_KEY is not set', () => {
+            delete process.env.GEMINI_API_KEY;
+            expect(() => buildRequest('sys', 'prompt')).toThrow('Server configuration error: API Key missing');
+        });
     });
 
     describe('callAPI', () => {
@@ -43,12 +99,17 @@ describe('Gemini Provider', () => {
             const result = await callAPI('system instruction', 'user prompt');
 
             expect(fetchWithRetry).toHaveBeenCalledWith(
-                expect.stringContaining('models/gemini-2.0-flash:generateContent?key=test-gemini-key'),
+                expect.stringContaining('models/gemini-2.0-flash:generateContent'),
                 expect.objectContaining({
                     method: 'POST',
-                    body: expect.stringContaining('system instruction')
+                    body: expect.stringContaining('systemInstruction')
                 })
             );
+
+            // Verify systemInstruction is separate from contents
+            const requestBody = JSON.parse(fetchWithRetry.mock.calls[0][1].body);
+            expect(requestBody.systemInstruction.parts[0].text).toBe('system instruction');
+            expect(requestBody.contents[0].parts[0].text).toBe('user prompt');
 
             expect(result.contentText).toBe('{"meaning": "hello"}');
             expect(result.usage).toEqual({
@@ -57,23 +118,6 @@ describe('Gemini Provider', () => {
                 completionTokens: 20,
                 totalTokens: 30
             });
-        });
-
-        it('should use custom model from env', async () => {
-            process.env.GEMINI_MODEL = 'custom-model';
-            fetchWithRetry.mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    candidates: [{ content: { parts: [{ text: '{"meaning": "test"}' }] } }]
-                })
-            });
-
-            const result = await callAPI('sys', 'prompt');
-            expect(fetchWithRetry).toHaveBeenCalledWith(
-                expect.stringContaining('models/custom-model:generateContent'),
-                expect.any(Object)
-            );
-            expect(result.usage.model).toBe('custom-model');
         });
 
         it('should throw 429 error on rate limit', async () => {

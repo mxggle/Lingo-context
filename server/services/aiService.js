@@ -51,7 +51,7 @@ async function analyzeText({ text, context, targetLanguage }) {
     const systemInstruction = getSystemInstruction(targetLanguage);
     const prompt = generatePrompt(text, context, targetLanguage);
 
-    const { contentText, usage } = await provider.callAPI(systemInstruction, prompt);
+    const { contentText, usage } = await provider.callAPI(systemInstruction, prompt, { targetLanguage });
 
     const cost = calculateCost(usage.promptTokens, usage.completionTokens);
 

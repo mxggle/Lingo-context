@@ -2,6 +2,7 @@
 // Reference: https://developers.openai.com/codex/auth/
 
 const { fetchWithRetry } = require('../../fetchWithRetry');
+const { logCacheMetrics } = require('../promptCacheManager');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -25,29 +26,29 @@ function getCachedAuthToken() {
         }
 
         const authData = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
-        
+
         // Codex CLI stores tokens in different formats depending on version/login method
-        
+
         // New format: tokens.access_token (Codex CLI v0.4+)
         if (authData.tokens?.access_token) {
             return authData.tokens.access_token;
         }
-        
+
         // Direct access_token (older format)
         if (authData.access_token) {
             return authData.access_token;
         }
-        
+
         // ChatGPT login format
         if (authData.chatgpt?.access_token) {
             return authData.chatgpt.access_token;
         }
-        
+
         // API key format
         if (authData.api_key) {
             return authData.api_key;
         }
-        
+
         // OPENAI_API_KEY in auth file
         if (authData.OPENAI_API_KEY) {
             return authData.OPENAI_API_KEY;
@@ -148,6 +149,8 @@ async function callAPI(systemInstruction, prompt, options = {}) {
     const data = await response.json();
 
     const usage = data.usage || {};
+    logCacheMetrics(PROVIDER_NAME, usage);
+
     const promptTokens = usage.prompt_tokens || 0;
     const completionTokens = usage.completion_tokens || 0;
     const totalTokens = usage.total_tokens || (promptTokens + completionTokens);
@@ -213,6 +216,7 @@ function parseSSEData(dataStr) {
 
         // Final chunk may include usage stats
         if (parsed.usage) {
+            logCacheMetrics(PROVIDER_NAME, parsed.usage);
             usage = {
                 promptTokens: parsed.usage.prompt_tokens || 0,
                 completionTokens: parsed.usage.completion_tokens || 0,
