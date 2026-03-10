@@ -31,6 +31,7 @@ let interfaceLanguage = 'en';
 
 // Initialize the extension
 let isExtensionEnabled = true;
+let autoPlayAudio = false;
 
 async function init() {
   // Check for auth data from success page (for login flow)
@@ -38,9 +39,10 @@ async function init() {
   setupAuthSuccessActions();
 
   // Load language preference and settings
-  chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage'], async (result) => {
+  chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage', 'AUTO_PLAY_AUDIO'], async (result) => {
     isExtensionEnabled = result.EXTENSION_ENABLED !== false;
     interfaceLanguage = result.interfaceLanguage || 'en';
+    autoPlayAudio = result.AUTO_PLAY_AUDIO === true;
     await loadLocaleData(interfaceLanguage);
   });
 
@@ -52,6 +54,9 @@ async function init() {
         if (!isExtensionEnabled) {
           hidePopup();
         }
+      }
+      if (changes.AUTO_PLAY_AUDIO) {
+        autoPlayAudio = changes.AUTO_PLAY_AUDIO.newValue === true;
       }
       if (changes.interfaceLanguage) {
         interfaceLanguage = changes.interfaceLanguage.newValue;
@@ -1087,6 +1092,11 @@ function analyzeText(text, context, mode) {
         popup.innerHTML = renderResult(text, fullData, mode);
         syncPinButton();
         setupPopupActions(fullData);
+        if (autoPlayAudio) {
+          const textToSpeak = fullData.audio_text || text;
+          const lang = fullData.language || detectLanguage(textToSpeak);
+          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+        }
       } catch (e) {
         // Fallback if final JSON is malformed
         const partialData = extractStreamingJson(streamingText);
@@ -1096,8 +1106,12 @@ function analyzeText(text, context, mode) {
         if (saveBtn) saveBtn.disabled = false;
 
         syncPinButton();
-        // Still setup actions with partial data
         setupPopupActions(partialData);
+        if (autoPlayAudio) {
+          const textToSpeak = partialData.audio_text || text;
+          const lang = partialData.language || detectLanguage(textToSpeak);
+          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+        }
       }
     }
   } catch (error) {

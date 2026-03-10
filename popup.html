@@ -206,6 +206,23 @@
       color: #d4d4d8;
     }
 
+    .toggle-row-label-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .toggle-row-sub {
+      font-size: 10px;
+      color: #52525b;
+    }
+
+    .toggle-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 0 13px;
+    }
+
     .toggle {
       position: relative;
       width: 40px;
@@ -417,12 +434,23 @@
 
     </div> <!-- /#authArea -->
 
-    <!-- Enable extension toggle -->
+    <!-- Toggles card -->
     <div class="card" id="toggleCard">
       <div class="toggle-row">
         <span class="toggle-row-label" data-i18n="enableExtension">Enable Extension</span>
         <label class="toggle">
           <input type="checkbox" id="enabled" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-divider"></div>
+      <div class="toggle-row">
+        <div class="toggle-row-label-wrap">
+          <span class="toggle-row-label">Auto Play Audio</span>
+          <span class="toggle-row-sub">Play pronunciation on selection</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="autoPlayAudio">
           <span class="toggle-slider"></span>
         </label>
       </div>

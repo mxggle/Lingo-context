@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(ls /Users/szy/CascadeProjects/word-cursor/*.js /Users/szy/CascadeProjects/word-cursor/src/*.js 2>/dev/null || ls /Users/szy/CascadeProjects/word-cursor/)"
     ]
   }
 }

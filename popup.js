@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize i18n first
     await new Promise(resolve => initI18n(resolve));
     const enabledToggle = document.getElementById('enabled');
+    const autoPlayAudioToggle = document.getElementById('autoPlayAudio');
     const dashboardBtn = document.getElementById('dashboardBtn');
     const status = document.getElementById('status');
 
@@ -16,10 +17,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load saved settings
     const settings = await chrome.storage.local.get([
-        'EXTENSION_ENABLED'
+        'EXTENSION_ENABLED',
+        'AUTO_PLAY_AUDIO'
     ]);
 
     enabledToggle.checked = settings.EXTENSION_ENABLED !== false;
+    autoPlayAudioToggle.checked = settings.AUTO_PLAY_AUDIO === true;
 
     // Dashboard Button
     if (dashboardBtn) {
@@ -61,6 +64,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             showStatus('Failed to save settings', true);
             enabledToggle.checked = !enabled;
             updateStatusPill(!enabled);
+        }
+    });
+
+    autoPlayAudioToggle.addEventListener('change', async () => {
+        const enabled = autoPlayAudioToggle.checked;
+        try {
+            await chrome.storage.local.set({ AUTO_PLAY_AUDIO: enabled });
+
+            if (toggleCard) {
+                toggleCard.classList.remove('saved');
+                void toggleCard.offsetWidth;
+                toggleCard.classList.add('saved');
+                toggleCard.addEventListener('animationend', () => {
+                    toggleCard.classList.remove('saved');
+                }, { once: true });
+            }
+        } catch (error) {
+            showStatus('Failed to save settings', true);
+            autoPlayAudioToggle.checked = !enabled;
         }
     });
 
