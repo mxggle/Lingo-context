@@ -114,7 +114,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             userAvatar.style.display = 'block';
             if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
         } else {
+            userAvatar.removeAttribute('src');
+            userAvatar.style.display = 'none';
             if (avatarPlaceholder) avatarPlaceholder.textContent = (name || '?')[0].toUpperCase();
+            if (avatarPlaceholder) avatarPlaceholder.style.display = 'flex';
         }
     }
 
