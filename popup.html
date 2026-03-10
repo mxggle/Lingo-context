@@ -13,125 +13,204 @@
     }
 
     body {
-      width: 360px;
-      min-height: 400px;
+      width: 320px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
-      color: #e7e5e4;
+      background: #18181b;
+      color: #e4e4e7;
     }
 
-    .container {
-      padding: 20px;
-    }
-
-    header {
+    /* ── Header ── */
+    .header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid rgba(120, 113, 108, 0.2);
+      gap: 10px;
+      padding: 16px 16px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .logo {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
+      flex-shrink: 0;
     }
 
-    .title-block h1 {
-      font-size: 18px;
+    .header-text h1 {
+      font-size: 15px;
       font-weight: 700;
-      color: #fafaf9;
+      color: #fafafa;
+      line-height: 1.2;
     }
 
-    .title-block p {
-      font-size: 12px;
-      color: #a8a29e;
+    .header-text p {
+      font-size: 11px;
+      color: #71717a;
+      margin-top: 1px;
     }
 
-    .section {
-      margin-bottom: 20px;
-    }
-
-    .section-title {
+    /* Status pill in header */
+    .status-pill {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 20px;
       font-size: 11px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #a8a29e;
-      margin-bottom: 10px;
+      background: rgba(34, 197, 94, 0.12);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      transition: all 0.2s;
+      flex-shrink: 0;
     }
 
-    .input-group {
-      margin-bottom: 12px;
+    .status-pill.inactive {
+      background: rgba(113, 113, 122, 0.12);
+      color: #71717a;
+      border-color: rgba(113, 113, 122, 0.2);
     }
 
-    .input-group label {
+    .status-pill .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── Main content ── */
+    .content {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    /* ── User card ── */
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 13px;
+    }
+
+    .user-avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    #userAvatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      object-fit: cover;
       display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: #d6d3d1;
-      margin-bottom: 6px;
+      border: 1.5px solid rgba(251, 191, 36, 0.3);
     }
 
-    .input-group input {
-      width: 100%;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(120, 113, 108, 0.2);
-      border-radius: 10px;
-      color: #fafaf9;
+    .avatar-placeholder {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 14px;
-      transition: all 0.15s;
+      font-weight: 700;
+      color: #1c1917;
     }
 
-    .input-group input:focus {
-      outline: none;
-      border-color: #fbbf24;
-      background: rgba(255, 255, 255, 0.08);
+    .user-meta {
+      flex: 1;
+      min-width: 0;
     }
 
-    .input-group input::placeholder {
-      color: #57534e;
+    #userName {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fafafa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .input-group .hint {
+    #userEmail {
       font-size: 11px;
-      color: #78716c;
-      margin-top: 4px;
+      color: #71717a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
     }
 
-    .toggle-group {
+    .logout-btn {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      color: #71717a;
+      display: flex;
+      align-items: center;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(248, 113, 113, 0.12);
+      color: #f87171;
+    }
+
+    /* ── Login button ── */
+    #loginBtn {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      color: #e4e4e7;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    #loginBtn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    /* ── Toggle row ── */
+    .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(120, 113, 108, 0.2);
-      border-radius: 10px;
-      transition: background 0.3s ease, border-color 0.3s ease;
+      padding: 11px 13px;
     }
 
-    @keyframes toggleSaved {
-      0%   { background: rgba(255, 255, 255, 0.03); border-color: rgba(120, 113, 108, 0.2); }
-      30%  { background: rgba(34, 197, 94, 0.12);   border-color: rgba(34, 197, 94, 0.35); }
-      100% { background: rgba(255, 255, 255, 0.03); border-color: rgba(120, 113, 108, 0.2); }
-    }
-
-    .toggle-group.saved {
-      animation: toggleSaved 1.2s ease forwards;
-    }
-
-    .toggle-label {
-      font-size: 14px;
-      color: #e7e5e4;
+    .toggle-row-label {
+      font-size: 13px;
+      color: #d4d4d8;
     }
 
     .toggle {
       position: relative;
-      width: 44px;
-      height: 24px;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
     }
 
     .toggle input {
@@ -143,167 +222,205 @@
     .toggle-slider {
       position: absolute;
       cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #44403c;
-      transition: 0.2s;
-      border-radius: 24px;
+      inset: 0;
+      background: #3f3f46;
+      border-radius: 22px;
+      transition: background 0.2s;
     }
 
     .toggle-slider:before {
-      position: absolute;
       content: "";
-      height: 18px;
-      width: 18px;
+      position: absolute;
+      height: 16px;
+      width: 16px;
       left: 3px;
-      bottom: 3px;
-      background-color: #fafaf9;
-      transition: 0.2s;
+      top: 3px;
+      background: #fafafa;
       border-radius: 50%;
+      transition: transform 0.2s;
     }
 
-    .toggle input:checked+.toggle-slider {
+    .toggle input:checked + .toggle-slider {
       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
     }
 
-    .toggle input:checked+.toggle-slider:before {
-      transform: translateX(20px);
-      background-color: #1c1917;
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(18px);
+      background: #1c1917;
     }
 
-    .btn {
+    @keyframes toggleSaved {
+      0%, 100% { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.07); }
+      40%       { background: rgba(34,197,94,0.1);   border-color: rgba(34,197,94,0.25); }
+    }
+
+    .card.saved { animation: toggleSaved 1.2s ease forwards; }
+
+    /* ── Dashboard button ── */
+    #dashboardBtn {
       width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .btn-primary {
+      padding: 11px 14px;
       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      border: none;
+      border-radius: 12px;
       color: #1c1917;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: filter 0.15s, transform 0.15s;
+      letter-spacing: 0.01em;
     }
 
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+    #dashboardBtn:hover {
+      filter: brightness(1.08);
       transform: translateY(-1px);
     }
 
-    .status {
-      margin-top: 12px;
-      padding: 10px 14px;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.2);
-      border-radius: 8px;
-      font-size: 13px;
-      color: #22c55e;
-      text-align: center;
-      display: none;
+    #dashboardBtn:active {
+      transform: translateY(0);
     }
 
-    .status.error {
-      background: rgba(248, 113, 113, 0.1);
-      border-color: rgba(248, 113, 113, 0.2);
-      color: #f87171;
-    }
-
-    .status.visible {
-      display: block;
-    }
-
+    /* ── Footer ── */
     footer {
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(120, 113, 108, 0.2);
-      text-align: center;
+      padding: 10px 14px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    footer p {
-      font-size: 11px;
-      color: #78716c;
+    .footer-links {
+      display: flex;
+      gap: 12px;
     }
 
     footer a {
-      color: #fbbf24;
+      font-size: 11px;
+      color: #52525b;
       text-decoration: none;
+      transition: color 0.15s;
     }
 
     footer a:hover {
-      text-decoration: underline;
+      color: #fbbf24;
     }
 
-    .auth-view {
-      transition: opacity 0.2s ease;
+    #versionDisplay {
+      font-size: 11px;
+      color: #3f3f46;
     }
 
-    .auth-view.hidden-auth {
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
       opacity: 0;
       pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
     }
+
+    .toast.error {
+      background: rgba(248, 113, 113, 0.15);
+      border-color: rgba(248, 113, 113, 0.3);
+      color: #f87171;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Auth area ── */
+    /* Hidden until JS resolves the auth state — prevents login→user flash */
+    #authArea {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    #authArea.auth-ready {
+      opacity: 1;
+    }
+
+    /* Auth view helpers (for transitions after init) */
+    .auth-view { transition: opacity 0.15s ease; }
+    .auth-view.hidden-auth { opacity: 0; pointer-events: none; }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <header>
-      <img src="icons/icon128.png" class="logo" alt="LingoContext Logo">
-      <div class="title-block">
-        <h1>LingoContext</h1>
-        <p data-i18n="popupSubtitle">Language Learning Assistant</p>
-      </div>
-    </header>
 
+  <!-- Header -->
+  <header class="header">
+    <img src="icons/icon128.png" class="logo" alt="LingoContext">
+    <div class="header-text">
+      <h1>LingoContext</h1>
+      <p data-i18n="popupSubtitle">Language Learning Assistant</p>
+    </div>
+    <div class="status-pill inactive" id="statusPill">
+      <span class="dot"></span>
+      <span id="statusPillLabel">Off</span>
+    </div>
+  </header>
 
+  <!-- Content -->
+  <div class="content">
 
-    <div class="section">
-      <div class="section-title" data-i18n="accountSection">Account</div>
-      <div id="authSection" class="auth-view">
-        <button class="btn" id="loginBtn"
-          style="background: white; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px;">
-          <svg width="18" height="18" viewBox="0 0 18 18">
-            <path
-              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
-              fill="#4285F4"></path>
-            <path
-              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z"
-              fill="#34A853"></path>
-            <path
-              d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
-              fill="#FBBC05"></path>
-            <path
-              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-              fill="#EA4335"></path>
-          </svg>
-          <span data-i18n="loginGoogle">Login with Google</span>
-        </button>
-      </div>
-      <div id="userInfo" class="auth-view hidden-auth" style="display: none;">
-        <div
-          style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-          <img id="userAvatar" src="" style="width: 32px; height: 32px; border-radius: 50%; display: none;">
-          <div style="overflow: hidden;">
-            <div id="userName"
-              style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            </div>
-            <div id="userEmail"
-              style="font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            </div>
-          </div>
+    <!-- Auth area: hidden until JS resolves state, preventing flash -->
+    <div id="authArea">
+
+    <!-- Login (logged-out state) -->
+    <div id="authSection" class="auth-view">
+      <button id="loginBtn">
+        <svg width="16" height="16" viewBox="0 0 18 18">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        <span data-i18n="loginGoogle">Continue with Google</span>
+      </button>
+    </div>
+
+    <!-- User card (logged-in state) -->
+    <div id="userInfo" class="auth-view hidden-auth card" style="display: none;">
+      <div class="user-card">
+        <div class="user-avatar-wrap">
+          <img id="userAvatar" src="" alt="" style="display: none;">
+          <div class="avatar-placeholder" id="avatarPlaceholder">?</div>
         </div>
-        <button class="btn" id="logoutBtn" data-i18n="logoutBtn"
-          style="background: rgba(248, 113, 113, 0.1); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.2);">Logout</button>
+        <div class="user-meta">
+          <div id="userName"></div>
+          <div id="userEmail"></div>
+        </div>
+        <!-- Logout icon button -->
+        <button class="logout-btn" id="logoutBtn" title="Sign out">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title" data-i18n="preferencesSection">Preferences</div>
-      <div class="toggle-group">
-        <span class="toggle-label" data-i18n="enableExtension">Enable Extension</span>
+    </div> <!-- /#authArea -->
+
+    <!-- Enable extension toggle -->
+    <div class="card" id="toggleCard">
+      <div class="toggle-row">
+        <span class="toggle-row-label" data-i18n="enableExtension">Enable Extension</span>
         <label class="toggle">
           <input type="checkbox" id="enabled" checked>
           <span class="toggle-slider"></span>
@@ -311,26 +428,32 @@
       </div>
     </div>
 
-    <div class="section">
-      <button class="btn" style="background: rgba(255,255,255,0.1); color: #e2e8f0; margin-bottom: 12px;"
-        id="dashboardBtn" data-i18n="openDashboardBtn">
-        Open My Dashboard
-      </button>
-    </div>
+    <!-- Dashboard CTA -->
+    <button id="dashboardBtn" data-i18n="openDashboardBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      Open Dashboard
+    </button>
 
-    <footer>
-      <p>
-        <a href="https://github.com/mxggle/Lingo-context" target="_blank" data-i18n="helpLink">Help</a> |
-        <a href="https://github.com/mxggle/Lingo-context/issues/new" target="_blank"
-          data-i18n="feedbackLink">Feedback</a>
-      </p>
-      <p style="margin-top: 4px;" id="versionDisplay"></p>
-    </footer>
-
-    <div class="status" id="status"></div>
-
-    <script type="module" src="popup.js"></script>
   </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/mxggle/Lingo-context" target="_blank" data-i18n="helpLink">Help</a>
+      <a href="https://github.com/mxggle/Lingo-context/issues/new" target="_blank" data-i18n="feedbackLink">Feedback</a>
+    </div>
+    <span id="versionDisplay"></span>
+  </footer>
+
+  <!-- Toast notification -->
+  <div class="toast" id="status"></div>
+
+  <script type="module" src="popup.js"></script>
 </body>
 
 </html>

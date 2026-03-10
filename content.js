@@ -35,6 +35,7 @@ let isExtensionEnabled = true;
 async function init() {
   // Check for auth data from success page (for login flow)
   await checkForAuthData();
+  setupAuthSuccessActions();
 
   // Load language preference and settings
   chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage'], async (result) => {
@@ -146,6 +147,32 @@ async function checkForAuthData() {
     } catch (e) {
       console.error('LingoContext: Failed to parse auth data', e);
     }
+  }
+}
+
+function setupAuthSuccessActions() {
+  const dashboardButton = document.getElementById('lingocontext-open-dashboard');
+  const dashboardStatus = document.getElementById('lingocontext-dashboard-status');
+  if (!dashboardButton) {
+    return;
+  }
+
+  const openDashboard = (shouldUpdateStatus = false) => {
+    chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD_IN_CURRENT_TAB' }, () => {
+      if (shouldUpdateStatus && dashboardStatus) {
+        dashboardStatus.textContent = 'Dashboard opened. You can close this window.';
+      }
+    });
+  };
+
+  dashboardButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    openDashboard(true);
+  });
+
+  if (!sessionStorage.getItem('lingocontext-dashboard-opened')) {
+    sessionStorage.setItem('lingocontext-dashboard-opened', 'true');
+    openDashboard(true);
   }
 }
 
