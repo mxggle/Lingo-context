@@ -38,7 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateStatusPill(enabled) {
         if (!statusPill) return;
         statusPill.classList.toggle('inactive', !enabled);
-        statusPillLabel.textContent = enabled ? 'On' : 'Off';
+        statusPillLabel.textContent = enabled
+            ? (getTransl('statusOn') || 'On')
+            : (getTransl('statusOff') || 'Off');
     }
 
     updateStatusPill(enabledToggle.checked);
@@ -61,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }, { once: true });
             }
         } catch (error) {
-            showStatus('Failed to save settings', true);
+            showStatus(getTransl('toastSettingsSaveError') || 'Failed to save settings', true);
             enabledToggle.checked = !enabled;
             updateStatusPill(!enabled);
         }
@@ -81,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }, { once: true });
             }
         } catch (error) {
-            showStatus('Failed to save settings', true);
+            showStatus(getTransl('toastSettingsSaveError') || 'Failed to save settings', true);
             autoPlayAudioToggle.checked = !enabled;
         }
     });
@@ -130,9 +132,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             authSection.style.display = 'none';
             userInfo.style.display = 'block';
             userInfo.classList.remove('hidden-auth');
-            userName.textContent = user.display_name || 'User';
+            userName.textContent = user.display_name || (getTransl('genericUserLabel') || 'User');
             userEmail.textContent = user.email;
-            setAvatar(user.avatar_url, user.display_name || 'U');
+            setAvatar(user.avatar_url, user.display_name || (getTransl('genericUserInitial') || 'U'));
         } else {
             userInfo.classList.add('hidden-auth');
             userInfo.style.display = 'none';

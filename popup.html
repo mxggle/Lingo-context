@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LingoContext Settings</title>
+  <title data-i18n="popupPageTitle">LingoContext Settings</title>
   <style>
     * {
       margin: 0;
@@ -387,7 +387,7 @@
     </div>
     <div class="status-pill inactive" id="statusPill">
       <span class="dot"></span>
-      <span id="statusPillLabel">Off</span>
+      <span id="statusPillLabel" data-i18n="statusOff">Off</span>
     </div>
   </header>
 
@@ -422,7 +422,7 @@
           <div id="userEmail"></div>
         </div>
         <!-- Logout icon button -->
-        <button class="logout-btn" id="logoutBtn" title="Sign out">
+        <button class="logout-btn" id="logoutBtn" title="Sign out" data-i18n-title="signOutTooltip">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
@@ -446,8 +446,8 @@
       <div class="toggle-divider"></div>
       <div class="toggle-row">
         <div class="toggle-row-label-wrap">
-          <span class="toggle-row-label">Auto Play Audio</span>
-          <span class="toggle-row-sub">Play pronunciation on selection</span>
+          <span class="toggle-row-label" data-i18n="autoPlayAudioLabel">Auto Play Audio</span>
+          <span class="toggle-row-sub" data-i18n="autoPlayAudioHint">Play pronunciation on selection</span>
         </div>
         <label class="toggle">
           <input type="checkbox" id="autoPlayAudio">

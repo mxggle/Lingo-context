@@ -105,6 +105,10 @@ function getTransl(key) {
   return '';
 }
 
+function getPageContextLabel(key, fallback) {
+  return getTransl(key) || fallback;
+}
+
 // Replace placeholders in string ($1, $2, etc)
 function processTranslPlaceholders(messageTemplate, ...args) {
   let result = messageTemplate;
@@ -165,7 +169,7 @@ function setupAuthSuccessActions() {
   const openDashboard = (shouldUpdateStatus = false) => {
     chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD_IN_CURRENT_TAB' }, () => {
       if (shouldUpdateStatus && dashboardStatus) {
-        dashboardStatus.textContent = 'Dashboard opened. You can close this window.';
+        dashboardStatus.textContent = getTransl('authSuccessDashboardOpened') || 'Dashboard opened. You can close this window.';
       }
     });
   };
@@ -852,13 +856,13 @@ function getSurroundingContext(selection) {
     const pageMetaDesc = document.querySelector('meta[name="description"]')?.content;
 
     if (pageTitle) {
-      contextParts.push(`[Page Title: ${pageTitle}]`);
+      contextParts.push(`[${getPageContextLabel('pageTitleLabel', 'Page Title')}: ${pageTitle}]`);
     }
     if (pageUrl) {
-      contextParts.push(`[Website: ${pageUrl}]`);
+      contextParts.push(`[${getPageContextLabel('websiteLabel', 'Website')}: ${pageUrl}]`);
     }
     if (pageMetaDesc) {
-      contextParts.push(`[Description: ${pageMetaDesc.slice(0, 200)}]`);
+      contextParts.push(`[${getPageContextLabel('descriptionLabel', 'Description')}: ${pageMetaDesc.slice(0, 200)}]`);
     }
 
     // Add surrounding text context
@@ -1125,7 +1129,7 @@ function analyzeText(text, context, mode) {
 // Pin button HTML (reused across all header renders)
 function pinBtnHtml() {
   return `
-    <button class="pin-btn${isPinned ? ' active' : ''}" data-action="pin" title="${isPinned ? 'Unpin popup' : 'Pin popup position'}">
+    <button class="pin-btn${isPinned ? ' active' : ''}" data-action="pin" title="${isPinned ? (getTransl('unpinPopupTitle') || 'Unpin popup') : (getTransl('pinPopupTitle') || 'Pin popup position')}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
       </svg>
@@ -1137,7 +1141,9 @@ function syncPinButton() {
   const pinBtn = popup.querySelector('[data-action="pin"]');
   if (!pinBtn) return;
   pinBtn.classList.toggle('active', isPinned);
-  pinBtn.title = isPinned ? 'Unpin popup' : 'Pin popup position';
+  pinBtn.title = isPinned
+    ? (getTransl('unpinPopupTitle') || 'Unpin popup')
+    : (getTransl('pinPopupTitle') || 'Pin popup position');
   popup.classList.toggle('pinned', isPinned);
 }
 

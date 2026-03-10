@@ -139,6 +139,12 @@
     "popupSubtitle": {
         "message": "Language Learning Assistant"
     },
+    "popupPageTitle": {
+        "message": "LingoContext Settings"
+    },
+    "dashboardPageTitle": {
+        "message": "LingoContext - Dashboard"
+    },
     "accountSection": {
         "message": "Account"
     },
@@ -147,6 +153,27 @@
     },
     "enableExtension": {
         "message": "Enable Extension"
+    },
+    "autoPlayAudioLabel": {
+        "message": "Auto Play Audio"
+    },
+    "autoPlayAudioHint": {
+        "message": "Play pronunciation on selection"
+    },
+    "statusOn": {
+        "message": "On"
+    },
+    "statusOff": {
+        "message": "Off"
+    },
+    "signOutTooltip": {
+        "message": "Sign out"
+    },
+    "genericUserLabel": {
+        "message": "User"
+    },
+    "genericUserInitial": {
+        "message": "U"
     },
     "openDashboardBtn": {
         "message": "Open My Dashboard"
@@ -171,6 +198,12 @@
     },
     "tryAgainBtn": {
         "message": "Try Again"
+    },
+    "cancelBtn": {
+        "message": "Cancel"
+    },
+    "deleteConfirmTitle": {
+        "message": "Delete Word"
     },
     "wordAnalysisLabel": {
         "message": "Word Analysis"
@@ -230,5 +263,118 @@
     },
     "toastTranslationLanguageError": {
         "message": "Failed to save language preference. Please try again."
+    },
+    "toastSettingsSaveError": {
+        "message": "Failed to save settings"
+    },
+    "backendUrlMissingError": {
+        "message": "Backend URL not configured. Please check extension settings."
+    },
+    "backendConnectError": {
+        "message": "Failed to connect to backend: $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "backendUrlNotConfiguredAlert": {
+        "message": "Backend URL not configured."
+    },
+    "deleteWordFailedAlert": {
+        "message": "Failed to delete word. Please try again."
+    },
+    "noVocabularyToExportAlert": {
+        "message": "No vocabulary to export. Please refresh the data first."
+    },
+    "loadingShort": {
+        "message": "Loading..."
+    },
+    "csvHeaderText": {
+        "message": "Text"
+    },
+    "csvHeaderLanguage": {
+        "message": "Language"
+    },
+    "csvHeaderMeaning": {
+        "message": "Meaning"
+    },
+    "csvHeaderGrammar": {
+        "message": "Grammar"
+    },
+    "csvHeaderLookupCount": {
+        "message": "Lookup Count"
+    },
+    "csvHeaderContexts": {
+        "message": "Contexts"
+    },
+    "csvHeaderSavedDate": {
+        "message": "Saved Date"
+    },
+    "csvFilenamePrefix": {
+        "message": "vocabulary"
+    },
+    "pageTitleLabel": {
+        "message": "Page Title"
+    },
+    "websiteLabel": {
+        "message": "Website"
+    },
+    "descriptionLabel": {
+        "message": "Description"
+    },
+    "pinPopupTitle": {
+        "message": "Pin popup position"
+    },
+    "unpinPopupTitle": {
+        "message": "Unpin popup"
+    },
+    "authSuccessDashboardOpened": {
+        "message": "Dashboard opened. You can close this window."
+    },
+    "languageOptionEnglish": {
+        "message": "English"
+    },
+    "languageOptionZhCn": {
+        "message": "Simplified Chinese"
+    },
+    "languageOptionZhTw": {
+        "message": "Traditional Chinese"
+    },
+    "languageOptionJa": {
+        "message": "Japanese"
+    },
+    "targetLanguageEnglish": {
+        "message": "English English"
+    },
+    "targetLanguageJapanese": {
+        "message": "Japanese 日本語"
+    },
+    "targetLanguageSpanish": {
+        "message": "Spanish Español"
+    },
+    "targetLanguageFrench": {
+        "message": "French Français"
+    },
+    "targetLanguageGerman": {
+        "message": "German Deutsch"
+    },
+    "targetLanguageItalian": {
+        "message": "Italian Italiano"
+    },
+    "targetLanguagePortuguese": {
+        "message": "Portuguese Português"
+    },
+    "targetLanguageRussian": {
+        "message": "Russian Русский"
+    },
+    "targetLanguageKorean": {
+        "message": "Korean 한국어"
+    },
+    "targetLanguageSimplifiedChinese": {
+        "message": "Simplified Chinese 简体中文"
+    },
+    "targetLanguageTraditionalChinese": {
+        "message": "Traditional Chinese 繁體中文"
     }
 }

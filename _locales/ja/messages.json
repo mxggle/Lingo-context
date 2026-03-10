@@ -139,6 +139,12 @@
     "popupSubtitle": {
         "message": "言語学習アシスタント"
     },
+    "popupPageTitle": {
+        "message": "LingoContext 設定"
+    },
+    "dashboardPageTitle": {
+        "message": "LingoContext - ダッシュボード"
+    },
     "accountSection": {
         "message": "アカウント"
     },
@@ -147,6 +153,27 @@
     },
     "enableExtension": {
         "message": "拡張機能を有効にする"
+    },
+    "autoPlayAudioLabel": {
+        "message": "音声を自動再生"
+    },
+    "autoPlayAudioHint": {
+        "message": "選択時に発音を再生します"
+    },
+    "statusOn": {
+        "message": "オン"
+    },
+    "statusOff": {
+        "message": "オフ"
+    },
+    "signOutTooltip": {
+        "message": "サインアウト"
+    },
+    "genericUserLabel": {
+        "message": "ユーザー"
+    },
+    "genericUserInitial": {
+        "message": "U"
     },
     "openDashboardBtn": {
         "message": "ダッシュボードを開く"
@@ -171,6 +198,12 @@
     },
     "tryAgainBtn": {
         "message": "再試行"
+    },
+    "cancelBtn": {
+        "message": "キャンセル"
+    },
+    "deleteConfirmTitle": {
+        "message": "単語を削除"
     },
     "wordAnalysisLabel": {
         "message": "単語分析"
@@ -230,5 +263,118 @@
     },
     "toastTranslationLanguageError": {
         "message": "言語設定の保存に失敗しました。もう一度お試しください。"
+    },
+    "toastSettingsSaveError": {
+        "message": "設定の保存に失敗しました"
+    },
+    "backendUrlMissingError": {
+        "message": "バックエンドURLが設定されていません。拡張機能の設定を確認してください。"
+    },
+    "backendConnectError": {
+        "message": "バックエンドへの接続に失敗しました: $1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "backendUrlNotConfiguredAlert": {
+        "message": "バックエンドURLが設定されていません。"
+    },
+    "deleteWordFailedAlert": {
+        "message": "単語の削除に失敗しました。もう一度お試しください。"
+    },
+    "noVocabularyToExportAlert": {
+        "message": "エクスポートする語彙がありません。先にデータを更新してください。"
+    },
+    "loadingShort": {
+        "message": "読み込み中..."
+    },
+    "csvHeaderText": {
+        "message": "テキスト"
+    },
+    "csvHeaderLanguage": {
+        "message": "言語"
+    },
+    "csvHeaderMeaning": {
+        "message": "意味"
+    },
+    "csvHeaderGrammar": {
+        "message": "文法"
+    },
+    "csvHeaderLookupCount": {
+        "message": "検索回数"
+    },
+    "csvHeaderContexts": {
+        "message": "文脈"
+    },
+    "csvHeaderSavedDate": {
+        "message": "保存日"
+    },
+    "csvFilenamePrefix": {
+        "message": "vocabulary"
+    },
+    "pageTitleLabel": {
+        "message": "ページタイトル"
+    },
+    "websiteLabel": {
+        "message": "ウェブサイト"
+    },
+    "descriptionLabel": {
+        "message": "説明"
+    },
+    "pinPopupTitle": {
+        "message": "ポップアップ位置を固定"
+    },
+    "unpinPopupTitle": {
+        "message": "ポップアップ固定を解除"
+    },
+    "authSuccessDashboardOpened": {
+        "message": "ダッシュボードを開きました。このウィンドウは閉じても構いません。"
+    },
+    "languageOptionEnglish": {
+        "message": "英語"
+    },
+    "languageOptionZhCn": {
+        "message": "中国語（簡体字）"
+    },
+    "languageOptionZhTw": {
+        "message": "中国語（繁体字）"
+    },
+    "languageOptionJa": {
+        "message": "日本語"
+    },
+    "targetLanguageEnglish": {
+        "message": "英語 English"
+    },
+    "targetLanguageJapanese": {
+        "message": "日本語 Japanese"
+    },
+    "targetLanguageSpanish": {
+        "message": "スペイン語 Español"
+    },
+    "targetLanguageFrench": {
+        "message": "フランス語 Français"
+    },
+    "targetLanguageGerman": {
+        "message": "ドイツ語 Deutsch"
+    },
+    "targetLanguageItalian": {
+        "message": "イタリア語 Italiano"
+    },
+    "targetLanguagePortuguese": {
+        "message": "ポルトガル語 Português"
+    },
+    "targetLanguageRussian": {
+        "message": "ロシア語 Русский"
+    },
+    "targetLanguageKorean": {
+        "message": "韓国語 한국어"
+    },
+    "targetLanguageSimplifiedChinese": {
+        "message": "中国語（簡体字） 简体中文"
+    },
+    "targetLanguageTraditionalChinese": {
+        "message": "中国語（繁体字） 繁體中文"
     }
 }
