@@ -13,7 +13,10 @@ let triggerIcon = null;
 let shadowRoot = null;
 let isLoading = false;
 let currentSelection = null;
+let activeSelection = null;
 let isDragging = false;
+let isResizing = false;
+let resizeStarted = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let initialPopupX = 0;
@@ -53,10 +56,10 @@ async function init() {
         interfaceLanguage = changes.interfaceLanguage.newValue;
         await loadLocaleData(interfaceLanguage);
         // If popup is visible, re-render it
-        if (popup && !popup.classList.contains('hidden') && currentSelection) {
-          const wordCount = currentSelection.text.split(/\s+/).length;
+        if (popup && !popup.classList.contains('hidden') && activeSelection) {
+          const wordCount = activeSelection.text.split(/\s+/).length;
           const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
-          analyzeText(currentSelection.text, currentSelection.context, mode);
+          analyzeText(activeSelection.text, activeSelection.context, mode);
         }
       }
     }
@@ -689,6 +692,20 @@ function setupEventListeners() {
 function setupDragListeners() {
   // Use popup element for mousedown since it's inside the closed shadow root
   popup.addEventListener('mousedown', (e) => {
+    const rect = popup.getBoundingClientRect();
+    const resizeHandleSize = 18;
+    const clickedResizeHandle = (
+      rect.right - e.clientX <= resizeHandleSize &&
+      rect.bottom - e.clientY <= resizeHandleSize
+    );
+
+    if (clickedResizeHandle) {
+      isResizing = true;
+      resizeStarted = false;
+      lastKnownSize = { width: popup.offsetWidth, height: popup.offsetHeight };
+      return;
+    }
+
     // Check if clicking header or inside header
     const header = e.target.closest('.popup-header');
 
@@ -696,8 +713,6 @@ function setupDragListeners() {
       isDragging = true;
       dragStartX = e.clientX;
       dragStartY = e.clientY;
-
-      const rect = popup.getBoundingClientRect();
       initialPopupX = rect.left;
       initialPopupY = rect.top;
 
@@ -715,6 +730,14 @@ function setupDragListeners() {
       popup.style.left = `${initialPopupX + deltaX}px`;
       popup.style.top = `${initialPopupY + deltaY}px`;
     }
+
+    if (isResizing && popup) {
+      const w = popup.offsetWidth;
+      const h = popup.offsetHeight;
+      if (w !== lastKnownSize.width || h !== lastKnownSize.height) {
+        resizeStarted = true;
+      }
+    }
   });
 
   document.addEventListener('mouseup', () => {
@@ -726,16 +749,16 @@ function setupDragListeners() {
       }
     }
 
-    // Detect user resize: if popup is visible and size changed, save it
-    if (popup && !popup.classList.contains('hidden')) {
+    if (isResizing && popup && !popup.classList.contains('hidden') && resizeStarted) {
       const w = popup.offsetWidth;
       const h = popup.offsetHeight;
-      if (w !== lastKnownSize.width || h !== lastKnownSize.height) {
-        lastKnownSize = { width: w, height: h };
-        popupSize = { width: w, height: h };
-        chrome.storage.local.set({ POPUP_SIZE: popupSize });
-      }
+      lastKnownSize = { width: w, height: h };
+      popupSize = { width: w, height: h };
+      chrome.storage.local.set({ POPUP_SIZE: popupSize });
     }
+
+    isResizing = false;
+    resizeStarted = false;
   });
 }
 
@@ -873,11 +896,17 @@ function showTriggerIcon(rect, text, mode) {
 
 // Show popup at selection position with smart edge detection
 function showPopup(rect, text, mode) {
+  const selectionContext = currentSelection?.context || getSurroundingContext(window.getSelection());
+  activeSelection = {
+    text,
+    context: selectionContext
+  };
+
   // If pinned, skip repositioning — just update content at current position
   if (isPinned) {
     popup.classList.remove('hidden');
     popup.style.opacity = '1';
-    analyzeText(text, currentSelection.context, mode);
+    analyzeText(text, activeSelection.context, mode);
     return;
   }
 
@@ -928,7 +957,7 @@ function showPopup(rect, text, mode) {
 
     lastKnownSize = { width: popup.offsetWidth, height: popup.offsetHeight };
 
-    analyzeText(text, currentSelection.context, mode);
+    analyzeText(text, activeSelection.context, mode);
   });
 }
 
@@ -1211,11 +1240,11 @@ function setupErrorActions() {
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
   popup.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
-    if (currentSelection) {
-      const wordCount = currentSelection.text.split(/\s+/).length;
+    if (activeSelection) {
+      const wordCount = activeSelection.text.split(/\s+/).length;
       const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
       popup.innerHTML = renderLoading();
-      analyzeText(currentSelection.text, currentSelection.context, mode);
+      analyzeText(activeSelection.text, activeSelection.context, mode);
     }
   });
 }
@@ -1226,7 +1255,7 @@ function setupPopupActions(data) {
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
   popup.querySelector('[data-action="speak"]')?.addEventListener('click', () => {
-    const textToSpeak = data.audio_text || currentSelection?.text;
+    const textToSpeak = data.audio_text || activeSelection?.text;
     const lang = data.language || detectLanguage(textToSpeak);
 
     chrome.runtime.sendMessage({
@@ -1237,15 +1266,15 @@ function setupPopupActions(data) {
   });
 
   popup.querySelector('[data-action="save"]')?.addEventListener('click', () => {
-    saveWord(currentSelection?.text, data);
+    saveWord(activeSelection?.text, data);
   });
 
   popup.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
-    if (currentSelection) {
-      const wordCount = currentSelection.text.split(/\s+/).length;
+    if (activeSelection) {
+      const wordCount = activeSelection.text.split(/\s+/).length;
       const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
       popup.innerHTML = renderLoading();
-      analyzeText(currentSelection.text, currentSelection.context, mode);
+      analyzeText(activeSelection.text, activeSelection.context, mode);
     }
   });
 }
@@ -1275,7 +1304,7 @@ async function saveWord(text, data) {
       text,
       meaning: data.meaning,
       grammar: data.grammar,
-      context: currentSelection?.context,
+      context: activeSelection?.context,
       language: data.language || 'en',
       url: window.location.href
     };
@@ -1361,6 +1390,7 @@ function hidePopup() {
   }
   // Do NOT reset isPinned here — pin persists until user explicitly unpins
   currentSelection = null;
+  activeSelection = null;
 }
 
 // Escape HTML to prevent XSS
