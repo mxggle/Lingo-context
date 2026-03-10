@@ -5,6 +5,7 @@ const db = require('../db');
 const { invalidateCachedUser } = require('../auth');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { sendError } = require('../middleware/errorHandler');
+const { logger } = require('../logger');
 
 // Get current user
 router.get('/', (req, res) => {
@@ -17,6 +18,7 @@ router.get('/', (req, res) => {
 
 // Update preferences
 router.patch('/preferences', ensureAuthenticated, async (req, res) => {
+    const start = Date.now();
     const { targetLanguage } = req.body;
 
     if (!targetLanguage) {
@@ -33,8 +35,10 @@ router.patch('/preferences', ensureAuthenticated, async (req, res) => {
         req.user.target_language = targetLanguage;
         invalidateCachedUser(req.user.id);
 
+        logger.info({ route: 'PATCH /api/user/preferences', userId: req.user.id, targetLanguage, duration: Date.now() - start });
         res.json({ success: true, targetLanguage });
     } catch (error) {
+        logger.error({ route: 'PATCH /api/user/preferences', userId: req.user.id, error: error.message });
         console.error('Failed to update user preferences:', error);
         res.status(500).json({ error: error.message });
     }
@@ -42,6 +46,7 @@ router.patch('/preferences', ensureAuthenticated, async (req, res) => {
 
 // Get usage stats
 router.get('/stats', ensureAuthenticated, async (req, res) => {
+    const start = Date.now();
     try {
         const usageRes = await db.query(`
             SELECT 
@@ -54,11 +59,13 @@ router.get('/stats', ensureAuthenticated, async (req, res) => {
 
         const wordsRes = await db.query('SELECT COUNT(*) as saved_words FROM words WHERE user_id = ?', [req.user.id]);
 
+        logger.info({ route: 'GET /api/user/stats', userId: req.user.id, duration: Date.now() - start });
         res.json({
             usage: usageRes.rows[0],
             storage: wordsRes.rows[0]
         });
     } catch (error) {
+        logger.error({ route: 'GET /api/user/stats', userId: req.user.id, error: error.message });
         sendError(res, 500, error.message);
     }
 });

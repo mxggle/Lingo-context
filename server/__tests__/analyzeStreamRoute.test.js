@@ -1,10 +1,11 @@
 const request = require('supertest');
 const express = require('express');
 const analyzeStreamRouter = require('../routes/analyzeStream');
-const { analyzeTextStream } = require('../services/geminiStream');
+const { analyzeTextStream } = require('../services/aiStreamService');
+const { ensureAuthenticated } = require('../middleware/auth');
 const db = require('../db');
 
-jest.mock('../services/geminiStream', () => ({
+jest.mock('../services/aiStreamService', () => ({
     analyzeTextStream: jest.fn()
 }));
 
@@ -24,7 +25,7 @@ jest.mock('../middleware/auth', () => ({
 
 const app = express();
 app.use(express.json());
-app.use('/analyze/stream', analyzeStreamRouter);
+app.use('/analyze/stream', ensureAuthenticated, analyzeStreamRouter);
 
 describe('POST /analyze/stream', () => {
     beforeEach(() => {

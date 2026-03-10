@@ -1,6 +1,13 @@
-function getSystemInstruction(targetLanguage) {
-  const lang = targetLanguage || "English";
-  return `You are a Context-Adaptive Universal Translator Engine. Your goal is to analyze text selections within their specific context, determine the appropriate domain expertise, and provide explanations/translations in the user's requested target language.
+// Quick test: verify Gemini explicit caching works
+// Run: node scripts/test_cache.js
+
+const API_KEY = 'AIzaSyBkdEMXbkYujMFHeCsXQbfyPfFhAaEBBys';
+const MODEL = 'gemini-2.5-flash';
+const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+
+// Use the actual full system instruction from prompts.js
+const lang = 'English';
+const systemInstruction = `You are a Context-Adaptive Universal Translator Engine. Your goal is to analyze text selections within their specific context, determine the appropriate domain expertise, and provide explanations/translations in the user's requested target language.
 
 ### INPUT DATA STRUCTURE
 You will receive a JSON object with:
@@ -62,7 +69,7 @@ Output:
 Input:
 {
   "selection": "Opus",
-  "context": "[Page Title: Claude 4.0 Launch Discussion] [Website: twitter.com] I’m writing this post here while codex crunches through a huge refactor and un-slops older crimes of Opus 4.0.",
+  "context": "[Page Title: Claude 4.0 Launch Discussion] [Website: twitter.com] I'm writing this post here while codex crunches through a huge refactor and un-slops older crimes of Opus 4.0.",
   "target_language": "English"
 }
 
@@ -140,18 +147,84 @@ Output:
   "audio_text": "nerf",
   "nuance_note": "In gaming context, 'nerf' means to intentionally make something weaker for game balance. Originates from Nerf brand foam toys (making something soft/harmless). Here it refers to reducing AD carry item stats in League of Legends patch 15.2."
 }`;
+
+async function main() {
+    console.log('\n🔧 Config: model=' + MODEL);
+    console.log('   System instruction length: ' + systemInstruction.length + ' chars');
+
+    // Step 1: List existing caches
+    console.log('\n📋 Step 1: Listing existing caches...');
+    const listRes = await fetch(BASE_URL + '/cachedContents?key=' + API_KEY);
+    const listData = await listRes.json();
+    const caches = listData.cachedContents || [];
+    console.log('   Found ' + caches.length + ' existing cache(s)');
+    for (const c of caches) {
+        console.log('   - ' + c.name + ' (model: ' + c.model + ', expires: ' + c.expireTime + ')');
+    }
+
+    // Step 2: Create a new cache
+    console.log('\n🆕 Step 2: Creating explicit cache...');
+    const createRes = await fetch(BASE_URL + '/cachedContents?key=' + API_KEY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'models/' + MODEL,
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            ttl: '300s'
+        }),
+    });
+
+    const createData = await createRes.json();
+
+    if (!createRes.ok) {
+        console.error('❌ Failed to create cache:');
+        console.error(JSON.stringify(createData, null, 2));
+        return;
+    }
+
+    const cacheName = createData.name;
+    console.log('   ✅ Cache created: ' + cacheName);
+    console.log('   Tokens: ' + (createData.usageMetadata?.totalTokenCount || '?'));
+    console.log('   Expires: ' + createData.expireTime);
+
+    // Step 3: Use the cache
+    console.log('\n🚀 Step 3: Generating content with cache...');
+    const genRes = await fetch(
+        BASE_URL + '/models/' + MODEL + ':generateContent?key=' + API_KEY,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cachedContent: cacheName,
+                contents: [{ role: 'user', parts: [{ text: '{"selection":"ORM","context":"We need to optimize our database queries because the current ORM is generating N+1 problems.","target_language":"English"}' }] }],
+                generationConfig: { temperature: 0.3, maxOutputTokens: 512 }
+            }),
+        }
+    );
+
+    const genData = await genRes.json();
+    if (!genRes.ok) {
+        console.error('❌ Generate failed:', JSON.stringify(genData, null, 2));
+    } else {
+        const usage = genData.usageMetadata || {};
+        console.log('   ✅ Response received!');
+        console.log('   Prompt tokens: ' + usage.promptTokenCount);
+        console.log('   Cached tokens: ' + (usage.cachedContentTokenCount || 0));
+        console.log('   Completion tokens: ' + usage.candidatesTokenCount);
+        if (usage.cachedContentTokenCount > 0) {
+            console.log('   🎉 EXPLICIT CACHE HIT! ' + usage.cachedContentTokenCount + ' tokens cached');
+            const pct = Math.round((usage.cachedContentTokenCount / usage.promptTokenCount) * 100);
+            console.log('   Cache hit rate: ' + pct + '%');
+        }
+        const text = genData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) console.log('\n   Response: ' + text.slice(0, 300) + '...');
+    }
+
+    // Step 4: Clean up
+    console.log('\n🧹 Step 4: Deleting test cache...');
+    const delRes = await fetch(BASE_URL + '/' + cacheName + '?key=' + API_KEY, { method: 'DELETE' });
+    console.log('   ' + (delRes.ok ? '✅ Deleted' : '❌ Failed to delete'));
+    console.log('\n✅ Done!');
 }
 
-function generatePrompt(text, context, targetLanguage) {
-  return JSON.stringify({
-    selection: text,
-    context: context,
-    target_language: targetLanguage || "English"
-  });
-}
-
-module.exports = {
-  getSystemInstruction,
-  generatePrompt
-};
-
+main().catch(err => console.error('Fatal:', err));

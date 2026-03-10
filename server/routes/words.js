@@ -4,9 +4,11 @@ const router = express.Router();
 const db = require('../db');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { sendError } = require('../middleware/errorHandler');
+const { logger } = require('../logger');
 
 // Save word (with deduplication and multi-context support)
 router.post('/', ensureAuthenticated, async (req, res) => {
+    const start = Date.now();
     const { text, meaning, grammar, context, language, url } = req.body;
 
     // Input validation
@@ -41,6 +43,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
                     'UPDATE words SET saved_at = NOW(), lookup_count = lookup_count + 1 WHERE id = ?',
                     [wordId]
                 );
+                logger.info({ route: 'POST /api/words', action: 'lifted', userId: req.user.id, wordId, duration: Date.now() - start });
                 return res.json({ success: true, action: 'lifted', id: wordId });
             }
 
@@ -54,6 +57,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
                 'UPDATE words SET saved_at = NOW(), lookup_count = lookup_count + 1, meaning = ?, grammar = ? WHERE id = ?',
                 [meaning, grammar, wordId]
             );
+            logger.info({ route: 'POST /api/words', action: 'context_added', userId: req.user.id, wordId, duration: Date.now() - start });
             return res.json({ success: true, action: 'context_added', id: wordId });
         }
 
@@ -70,8 +74,10 @@ router.post('/', ensureAuthenticated, async (req, res) => {
             [newWordId, context, url]
         );
 
+        logger.info({ route: 'POST /api/words', action: 'created', userId: req.user.id, wordId: newWordId, duration: Date.now() - start });
         res.json({ success: true, action: 'created', id: newWordId });
     } catch (error) {
+        logger.error({ route: 'POST /api/words', userId: req.user.id, error: error.message, duration: Date.now() - start });
         console.error('DB Error:', error);
         sendError(res, 500, error.message);
     }
@@ -79,6 +85,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
 
 // Get words (with aggregated contexts)
 router.get('/', ensureAuthenticated, async (req, res) => {
+    const start = Date.now();
     try {
         const { limit, language } = req.query;
 
@@ -101,6 +108,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
         const words = wordsResult.rows;
 
         if (words.length === 0) {
+            logger.debug({ route: 'GET /api/words', userId: req.user.id, count: 0, duration: Date.now() - start });
             return res.json([]);
         }
 
@@ -134,19 +142,24 @@ router.get('/', ensureAuthenticated, async (req, res) => {
             contexts: contextsByWordId[word.id] || []
         }));
 
+        logger.info({ route: 'GET /api/words', userId: req.user.id, count: words.length, duration: Date.now() - start });
         res.json(wordsWithContexts);
     } catch (error) {
+        logger.error({ route: 'GET /api/words', userId: req.user.id, error: error.message });
         sendError(res, 500, error.message);
     }
 });
 
 // Delete word
 router.delete('/:id', ensureAuthenticated, async (req, res) => {
+    const start = Date.now();
     try {
         const result = await db.query('DELETE FROM words WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+        logger.info({ route: 'DELETE /api/words/:id', userId: req.user.id, wordId: req.params.id, deleted: result.rowCount > 0, duration: Date.now() - start });
         if (result.rowCount > 0) res.json({ success: true });
         else res.status(404).json({ error: 'Word not found' });
     } catch (error) {
+        logger.error({ route: 'DELETE /api/words/:id', userId: req.user.id, wordId: req.params.id, error: error.message });
         res.status(500).json({ error: error.message });
     }
 });

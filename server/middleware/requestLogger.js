@@ -1,19 +1,25 @@
-// Simple request logger middleware
+const { logger } = require('../logger');
 
 function requestLogger(req, res, next) {
     const start = Date.now();
 
-    // Hook into res.finish to log after response
     res.on('finish', () => {
         const duration = Date.now() - start;
-        const log = `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`;
+        const logData = {
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode,
+            duration,
+            ip: req.ip,
+            userAgent: req.get?.('user-agent')
+        };
 
         if (res.statusCode >= 500) {
-            console.error(`[REQ] ${log}`);
+            logger.error(logData);
         } else if (res.statusCode >= 400) {
-            console.warn(`[REQ] ${log}`);
+            logger.warn(logData);
         } else {
-            console.log(`[REQ] ${log}`);
+            logger.info(logData);
         }
     });
 

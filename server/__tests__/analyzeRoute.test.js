@@ -1,10 +1,11 @@
 const request = require('supertest');
 const express = require('express');
 const analyzeRouter = require('../routes/analyze');
-const { analyzeText } = require('../services/gemini');
+const { analyzeText } = require('../services/aiService');
+const { ensureAuthenticated } = require('../middleware/auth');
 const db = require('../db');
 
-jest.mock('../services/gemini', () => ({
+jest.mock('../services/aiService', () => ({
     analyzeText: jest.fn()
 }));
 
@@ -29,7 +30,7 @@ jest.mock('../middleware/auth', () => ({
 
 const app = express();
 app.use(express.json());
-app.use('/analyze', analyzeRouter);
+app.use('/analyze', ensureAuthenticated, analyzeRouter);
 
 describe('POST /analyze', () => {
     beforeEach(() => {
