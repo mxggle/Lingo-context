@@ -59,11 +59,13 @@ let configContent = fs.readFileSync(configPath, 'utf8');
 
 configContent = configContent
     .replace(/DEV_MODE:\s*true/, 'DEV_MODE: false')
-    .replace(/BACKEND_URL:\s*'http:\/\/localhost:.*\/api'/, "// BACKEND_URL: 'http://localhost:3000/api'")
-    .replace(/\/\/\s*BACKEND_URL:/, 'BACKEND_URL:');
+    .replace(/BACKEND_URL:\s*["']http:\/\/localhost:3000\/api["']/, '// BACKEND_URL: "http://localhost:3000/api"');
 
-if (configContent.includes('BACKEND_URL:') && !configContent.includes('BACKEND_URL:')) {
-    configContent = configContent.replace(/BACKEND_URL:/, '// BACKEND_URL:');
+if (!configContent.includes('BACKEND_URL: "https://lingo-context-api.vercel.app/api"')) {
+    configContent = configContent.replace(
+        /\/\/\s*BACKEND_URL:\s*["']https:\/\/lingo-context-api\.vercel\.app\/api["']/,
+        'BACKEND_URL: "https://lingo-context-api.vercel.app/api"'
+    );
 }
 
 fs.writeFileSync(configPath, configContent);
