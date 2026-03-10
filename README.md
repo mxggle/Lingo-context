@@ -4,7 +4,7 @@
 
 It comes with a full-featured **Dashboard** to track your vocabulary, view usage statistics, and manage your learning history.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -73,7 +73,7 @@ SESSION_SECRET=your_random_session_secret
 
 #### Extension (config.js)
 
-The extension defaults to `http://localhost:3000/api`. If deploying remotely, update `src/config.js` or `config.js` with your production URL.
+The extension ships with the production backend URL by default. For local development, override `BACKEND_URL` in `chrome.storage.local` or temporarily update `config.js` to your local API endpoint.
 
 ### 3. Running Locally
 
@@ -152,7 +152,7 @@ This creates `lingocontext-production.zip` with all production configurations ap
 
 - `storage`: For saving user preferences
 - `tts`: For text-to-speech functionality
-- Host access to backend API (vercel.app and localhost)
+- Host access to the production backend API
 
 ## 🖥️ Usage
 

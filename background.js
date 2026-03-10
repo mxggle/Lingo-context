@@ -180,6 +180,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true;
     }
+
+    if (message.type === 'OPEN_DASHBOARD') {
+        chrome.tabs.create({ url: 'dashboard.html' });
+        sendResponse({ success: true });
+        return true;
+    }
+
+    if (message.type === 'OPEN_DASHBOARD_IN_CURRENT_TAB') {
+        if (sender.tab?.id) {
+            chrome.tabs.update(sender.tab.id, { url: chrome.runtime.getURL('dashboard.html') });
+            sendResponse({ success: true });
+            return true;
+        }
+
+        chrome.tabs.create({ url: 'dashboard.html' });
+        sendResponse({ success: true });
+        return true;
+    }
 });
 
 // Hot reload for development

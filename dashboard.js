@@ -20,7 +20,7 @@ async function init() {
             renderWordsList(allWords.slice(0, 100));
 
             const title = document.getElementById('wordsSectionTitle');
-            if (title) title.textContent = 'Recent Vocabulary';
+            if (title) title.textContent = getTransl('recentVocabTitle') || 'Recent Vocabulary';
 
             clearFilterBtn.style.display = 'none';
         });
@@ -249,7 +249,7 @@ async function loadData() {
     const backendUrl = await getConfig('BACKEND_URL');
 
     if (!backendUrl) {
-        showError('Backend URL not configured. Please check extension settings.');
+        showError(getTransl('backendUrlMissingError') || 'Backend URL not configured. Please check extension settings.');
         return;
     }
 
@@ -259,7 +259,8 @@ async function loadData() {
             fetchWords(backendUrl)
         ]);
     } catch (error) {
-        showError('Failed to connect to backend: ' + error.message);
+        const template = getTransl('backendConnectError') || 'Failed to connect to backend: $1';
+        showError(processTranslPlaceholders(template, error.message));
     }
 }
 
@@ -276,13 +277,13 @@ async function fetchStats(backendUrl) {
         document.getElementById('totalCost').textContent = '$' + cost.toFixed(4);
     } catch (e) {
         console.error(e);
-        document.getElementById('totalRequests').textContent = 'Error';
+        document.getElementById('totalRequests').textContent = getTransl('errorTitle') || 'Error';
     }
 }
 
 async function fetchWords(backendUrl) {
     const list = document.getElementById('wordsList');
-    list.innerHTML = '<div class="loading">Loading...</div>';
+    list.innerHTML = `<div class="loading">${getTransl('loadingShort') || 'Loading...'}</div>`;
 
     try {
         const response = await fetch(`${backendUrl}/words`, { credentials: 'include' });
@@ -296,7 +297,7 @@ async function fetchWords(backendUrl) {
         renderWordsList(words.slice(0, 100)); // Render latest 100 by default
     } catch (e) {
         console.error(e);
-        list.innerHTML = `<div class="error">Failed to load words. Is the backend running?</div>`;
+        list.innerHTML = `<div class="error">${getTransl('failedMsg') || 'Failed to load words. Is the backend running?'}</div>`;
     }
 }
 
@@ -643,7 +644,7 @@ async function deleteWord(wordId) {
     const backendUrl = await getConfig('BACKEND_URL');
 
     if (!backendUrl) {
-        alert('Backend URL not configured.');
+        alert(getTransl('backendUrlNotConfiguredAlert') || 'Backend URL not configured.');
         return;
     }
 
@@ -701,7 +702,7 @@ async function deleteWord(wordId) {
         showToast(deleteSuccessText !== 'deleteSuccess' ? deleteSuccessText : 'Word deleted');
     } catch (error) {
         console.error('Delete error:', error);
-        alert('Failed to delete word. Please try again.');
+        alert(getTransl('deleteWordFailedAlert') || 'Failed to delete word. Please try again.');
     }
 }
 
@@ -755,12 +756,20 @@ function fallbackToSpeechSynthesis(text, language) {
 
 function exportVocabulary() {
     if (!allWords || allWords.length === 0) {
-        alert('No vocabulary to export. Please refresh the data first.');
+        alert(getTransl('noVocabularyToExportAlert') || 'No vocabulary to export. Please refresh the data first.');
         return;
     }
 
     // Create CSV content with updated headers
-    const headers = ['Text', 'Language', 'Meaning', 'Grammar', 'Lookup Count', 'Contexts', 'Saved Date'];
+    const headers = [
+        getTransl('csvHeaderText') || 'Text',
+        getTransl('csvHeaderLanguage') || 'Language',
+        getTransl('csvHeaderMeaning') || 'Meaning',
+        getTransl('csvHeaderGrammar') || 'Grammar',
+        getTransl('csvHeaderLookupCount') || 'Lookup Count',
+        getTransl('csvHeaderContexts') || 'Contexts',
+        getTransl('csvHeaderSavedDate') || 'Saved Date'
+    ];
     const csvRows = [headers.join(',')];
 
     allWords.forEach(word => {
@@ -793,7 +802,8 @@ function exportVocabulary() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `vocabulary_${new Date().toISOString().split('T')[0]}.csv`;
+    const filePrefix = getTransl('csvFilenamePrefix') || 'vocabulary';
+    link.download = `${filePrefix}_${new Date().toISOString().split('T')[0]}.csv`;
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();

@@ -139,6 +139,12 @@
     "popupSubtitle": {
         "message": "語言學習助手"
     },
+    "popupPageTitle": {
+        "message": "LingoContext 設定"
+    },
+    "dashboardPageTitle": {
+        "message": "LingoContext - 儀表板"
+    },
     "accountSection": {
         "message": "帳戶"
     },
@@ -147,6 +153,27 @@
     },
     "enableExtension": {
         "message": "啟用擴充功能"
+    },
+    "autoPlayAudioLabel": {
+        "message": "自動播放音訊"
+    },
+    "autoPlayAudioHint": {
+        "message": "選取文字時播放發音"
+    },
+    "statusOn": {
+        "message": "開"
+    },
+    "statusOff": {
+        "message": "關"
+    },
+    "signOutTooltip": {
+        "message": "登出帳號"
+    },
+    "genericUserLabel": {
+        "message": "使用者"
+    },
+    "genericUserInitial": {
+        "message": "使"
     },
     "openDashboardBtn": {
         "message": "開啟我的儀表板"
@@ -171,6 +198,12 @@
     },
     "tryAgainBtn": {
         "message": "重試"
+    },
+    "cancelBtn": {
+        "message": "取消"
+    },
+    "deleteConfirmTitle": {
+        "message": "刪除單字"
     },
     "wordAnalysisLabel": {
         "message": "單字分析"
@@ -230,5 +263,118 @@
     },
     "toastTranslationLanguageError": {
         "message": "儲存語言偏好設定失敗。請重試。"
+    },
+    "toastSettingsSaveError": {
+        "message": "儲存設定失敗"
+    },
+    "backendUrlMissingError": {
+        "message": "未設定後端 URL。請檢查擴充功能設定。"
+    },
+    "backendConnectError": {
+        "message": "連線後端失敗：$1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "backendUrlNotConfiguredAlert": {
+        "message": "未設定後端 URL。"
+    },
+    "deleteWordFailedAlert": {
+        "message": "刪除單字失敗。請再試一次。"
+    },
+    "noVocabularyToExportAlert": {
+        "message": "沒有可匯出的詞彙。請先重新整理資料。"
+    },
+    "loadingShort": {
+        "message": "載入中..."
+    },
+    "csvHeaderText": {
+        "message": "文字"
+    },
+    "csvHeaderLanguage": {
+        "message": "語言"
+    },
+    "csvHeaderMeaning": {
+        "message": "含義"
+    },
+    "csvHeaderGrammar": {
+        "message": "文法"
+    },
+    "csvHeaderLookupCount": {
+        "message": "查詢次數"
+    },
+    "csvHeaderContexts": {
+        "message": "語境"
+    },
+    "csvHeaderSavedDate": {
+        "message": "儲存日期"
+    },
+    "csvFilenamePrefix": {
+        "message": "vocabulary"
+    },
+    "pageTitleLabel": {
+        "message": "頁面標題"
+    },
+    "websiteLabel": {
+        "message": "網站"
+    },
+    "descriptionLabel": {
+        "message": "描述"
+    },
+    "pinPopupTitle": {
+        "message": "固定彈窗位置"
+    },
+    "unpinPopupTitle": {
+        "message": "取消固定彈窗"
+    },
+    "authSuccessDashboardOpened": {
+        "message": "儀表板已開啟。你可以關閉此視窗。"
+    },
+    "languageOptionEnglish": {
+        "message": "英文"
+    },
+    "languageOptionZhCn": {
+        "message": "簡體中文"
+    },
+    "languageOptionZhTw": {
+        "message": "繁體中文"
+    },
+    "languageOptionJa": {
+        "message": "日文"
+    },
+    "targetLanguageEnglish": {
+        "message": "英文 English"
+    },
+    "targetLanguageJapanese": {
+        "message": "日文 日本語"
+    },
+    "targetLanguageSpanish": {
+        "message": "西班牙文 Español"
+    },
+    "targetLanguageFrench": {
+        "message": "法文 Français"
+    },
+    "targetLanguageGerman": {
+        "message": "德文 Deutsch"
+    },
+    "targetLanguageItalian": {
+        "message": "義大利文 Italiano"
+    },
+    "targetLanguagePortuguese": {
+        "message": "葡萄牙文 Português"
+    },
+    "targetLanguageRussian": {
+        "message": "俄文 Русский"
+    },
+    "targetLanguageKorean": {
+        "message": "韓文 한국어"
+    },
+    "targetLanguageSimplifiedChinese": {
+        "message": "簡體中文 Simplified Chinese"
+    },
+    "targetLanguageTraditionalChinese": {
+        "message": "繁體中文 Traditional Chinese"
     }
 }

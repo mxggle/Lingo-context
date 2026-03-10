@@ -139,6 +139,12 @@
     "popupSubtitle": {
         "message": "语言学习助手"
     },
+    "popupPageTitle": {
+        "message": "LingoContext 设置"
+    },
+    "dashboardPageTitle": {
+        "message": "LingoContext - 仪表板"
+    },
     "accountSection": {
         "message": "账户"
     },
@@ -147,6 +153,27 @@
     },
     "enableExtension": {
         "message": "启用扩展"
+    },
+    "autoPlayAudioLabel": {
+        "message": "自动播放音频"
+    },
+    "autoPlayAudioHint": {
+        "message": "选择文本时播放发音"
+    },
+    "statusOn": {
+        "message": "开"
+    },
+    "statusOff": {
+        "message": "关"
+    },
+    "signOutTooltip": {
+        "message": "退出登录"
+    },
+    "genericUserLabel": {
+        "message": "用户"
+    },
+    "genericUserInitial": {
+        "message": "用"
     },
     "openDashboardBtn": {
         "message": "打开我的仪表板"
@@ -171,6 +198,12 @@
     },
     "tryAgainBtn": {
         "message": "重试"
+    },
+    "cancelBtn": {
+        "message": "取消"
+    },
+    "deleteConfirmTitle": {
+        "message": "删除单词"
     },
     "wordAnalysisLabel": {
         "message": "单词分析"
@@ -230,5 +263,118 @@
     },
     "toastTranslationLanguageError": {
         "message": "保存语言偏好设置失败。请重试。"
+    },
+    "toastSettingsSaveError": {
+        "message": "保存设置失败"
+    },
+    "backendUrlMissingError": {
+        "message": "未配置后端 URL。请检查扩展设置。"
+    },
+    "backendConnectError": {
+        "message": "连接后端失败：$1",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "backendUrlNotConfiguredAlert": {
+        "message": "未配置后端 URL。"
+    },
+    "deleteWordFailedAlert": {
+        "message": "删除单词失败。请重试。"
+    },
+    "noVocabularyToExportAlert": {
+        "message": "没有可导出的词汇。请先刷新数据。"
+    },
+    "loadingShort": {
+        "message": "加载中..."
+    },
+    "csvHeaderText": {
+        "message": "文本"
+    },
+    "csvHeaderLanguage": {
+        "message": "语言"
+    },
+    "csvHeaderMeaning": {
+        "message": "含义"
+    },
+    "csvHeaderGrammar": {
+        "message": "语法"
+    },
+    "csvHeaderLookupCount": {
+        "message": "查询次数"
+    },
+    "csvHeaderContexts": {
+        "message": "语境"
+    },
+    "csvHeaderSavedDate": {
+        "message": "保存日期"
+    },
+    "csvFilenamePrefix": {
+        "message": "vocabulary"
+    },
+    "pageTitleLabel": {
+        "message": "页面标题"
+    },
+    "websiteLabel": {
+        "message": "网站"
+    },
+    "descriptionLabel": {
+        "message": "描述"
+    },
+    "pinPopupTitle": {
+        "message": "固定弹窗位置"
+    },
+    "unpinPopupTitle": {
+        "message": "取消固定弹窗"
+    },
+    "authSuccessDashboardOpened": {
+        "message": "仪表板已打开。你可以关闭此窗口。"
+    },
+    "languageOptionEnglish": {
+        "message": "英语"
+    },
+    "languageOptionZhCn": {
+        "message": "简体中文"
+    },
+    "languageOptionZhTw": {
+        "message": "繁體中文"
+    },
+    "languageOptionJa": {
+        "message": "日语"
+    },
+    "targetLanguageEnglish": {
+        "message": "英语 English"
+    },
+    "targetLanguageJapanese": {
+        "message": "日语 日本語"
+    },
+    "targetLanguageSpanish": {
+        "message": "西班牙语 Español"
+    },
+    "targetLanguageFrench": {
+        "message": "法语 Français"
+    },
+    "targetLanguageGerman": {
+        "message": "德语 Deutsch"
+    },
+    "targetLanguageItalian": {
+        "message": "意大利语 Italiano"
+    },
+    "targetLanguagePortuguese": {
+        "message": "葡萄牙语 Português"
+    },
+    "targetLanguageRussian": {
+        "message": "俄语 Русский"
+    },
+    "targetLanguageKorean": {
+        "message": "韩语 한국어"
+    },
+    "targetLanguageSimplifiedChinese": {
+        "message": "简体中文 Simplified Chinese"
+    },
+    "targetLanguageTraditionalChinese": {
+        "message": "繁體中文 Traditional Chinese"
     }
 }

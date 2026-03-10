@@ -13,11 +13,17 @@ let triggerIcon = null;
 let shadowRoot = null;
 let isLoading = false;
 let currentSelection = null;
+let activeSelection = null;
 let isDragging = false;
+let isResizing = false;
+let resizeStarted = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let initialPopupX = 0;
 let initialPopupY = 0;
+let isPinned = false;
+let popupSize = { width: 380, height: null }; // null height = natural height
+let lastKnownSize = { width: 0, height: 0 };
 
 // i18n State
 let currentLocaleData = {};
@@ -25,15 +31,18 @@ let interfaceLanguage = 'en';
 
 // Initialize the extension
 let isExtensionEnabled = true;
+let autoPlayAudio = false;
 
 async function init() {
   // Check for auth data from success page (for login flow)
   await checkForAuthData();
+  setupAuthSuccessActions();
 
   // Load language preference and settings
-  chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage'], async (result) => {
+  chrome.storage.local.get(['EXTENSION_ENABLED', 'interfaceLanguage', 'AUTO_PLAY_AUDIO'], async (result) => {
     isExtensionEnabled = result.EXTENSION_ENABLED !== false;
     interfaceLanguage = result.interfaceLanguage || 'en';
+    autoPlayAudio = result.AUTO_PLAY_AUDIO === true;
     await loadLocaleData(interfaceLanguage);
   });
 
@@ -46,14 +55,17 @@ async function init() {
           hidePopup();
         }
       }
+      if (changes.AUTO_PLAY_AUDIO) {
+        autoPlayAudio = changes.AUTO_PLAY_AUDIO.newValue === true;
+      }
       if (changes.interfaceLanguage) {
         interfaceLanguage = changes.interfaceLanguage.newValue;
         await loadLocaleData(interfaceLanguage);
         // If popup is visible, re-render it
-        if (popup && !popup.classList.contains('hidden') && currentSelection) {
-          const wordCount = currentSelection.text.split(/\s+/).length;
+        if (popup && !popup.classList.contains('hidden') && activeSelection) {
+          const wordCount = activeSelection.text.split(/\s+/).length;
           const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
-          analyzeText(currentSelection.text, currentSelection.context, mode);
+          analyzeText(activeSelection.text, activeSelection.context, mode);
         }
       }
     }
@@ -61,6 +73,14 @@ async function init() {
 
   createPopup();
   setupEventListeners();
+
+  // Load user-saved popup size
+  chrome.storage.local.get('POPUP_SIZE', (result) => {
+    if (result.POPUP_SIZE) {
+      popupSize = result.POPUP_SIZE;
+    }
+  });
+
   console.log('LingoContext content script loaded');
 }
 
@@ -83,6 +103,10 @@ function getTransl(key) {
     return currentLocaleData[key].message;
   }
   return '';
+}
+
+function getPageContextLabel(key, fallback) {
+  return getTransl(key) || fallback;
 }
 
 // Replace placeholders in string ($1, $2, etc)
@@ -135,6 +159,32 @@ async function checkForAuthData() {
   }
 }
 
+function setupAuthSuccessActions() {
+  const dashboardButton = document.getElementById('lingocontext-open-dashboard');
+  const dashboardStatus = document.getElementById('lingocontext-dashboard-status');
+  if (!dashboardButton) {
+    return;
+  }
+
+  const openDashboard = (shouldUpdateStatus = false) => {
+    chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD_IN_CURRENT_TAB' }, () => {
+      if (shouldUpdateStatus && dashboardStatus) {
+        dashboardStatus.textContent = getTransl('authSuccessDashboardOpened') || 'Dashboard opened. You can close this window.';
+      }
+    });
+  };
+
+  dashboardButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    openDashboard(true);
+  });
+
+  if (!sessionStorage.getItem('lingocontext-dashboard-opened')) {
+    sessionStorage.setItem('lingocontext-dashboard-opened', 'true');
+    openDashboard(true);
+  }
+}
+
 // Create Shadow DOM popup
 function createPopup() {
   const host = document.createElement('div');
@@ -180,8 +230,13 @@ function getPopupStyles() {
     .popup {
       position: fixed;
       z-index: 2147483647;
-      max-width: 380px;
-      min-width: 280px;
+      width: 380px;
+      min-width: 260px;
+      min-height: 200px;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
       background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
       border: 1px solid rgba(120, 113, 108, 0.2);
       border-radius: 16px;
@@ -190,7 +245,46 @@ function getPopupStyles() {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
       color: #e7e5e4;
       animation: slideUp 0.25s ease-out;
-      overflow: hidden;
+      overflow: auto;
+      resize: both;
+    }
+
+    .popup::-webkit-resizer {
+      background: transparent;
+    }
+
+    .resize-hint {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      opacity: 0.3;
+    }
+
+    .resize-hint::before,
+    .resize-hint::after {
+      content: '';
+      position: absolute;
+      background: #a8a29e;
+      border-radius: 1px;
+    }
+
+    .resize-hint::before {
+      width: 10px;
+      height: 1.5px;
+      bottom: 4px;
+      right: 0;
+      box-shadow: 0 -3px 0 #a8a29e;
+    }
+
+    .resize-hint::after {
+      width: 1.5px;
+      height: 10px;
+      bottom: 0;
+      right: 4px;
+      box-shadow: -3px 0 0 #a8a29e;
     }
 
     .popup.hidden {
@@ -238,6 +332,13 @@ function getPopupStyles() {
       color: #a8a29e;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .pin-btn,
     .close-btn {
       background: none;
       border: none;
@@ -251,13 +352,30 @@ function getPopupStyles() {
       justify-content: center;
     }
 
+    .pin-btn:hover,
     .close-btn:hover {
       background: rgba(255, 255, 255, 0.1);
       color: #e7e5e4;
     }
 
+    .pin-btn.active {
+      color: #fbbf24;
+    }
+
+    .pin-btn.active:hover {
+      color: #fcd34d;
+      background: rgba(251, 191, 36, 0.1);
+    }
+
+    .popup.pinned .popup-header {
+      border-bottom-color: rgba(251, 191, 36, 0.25);
+    }
+
     .popup-content {
       padding: 16px;
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0; /* required for flex overflow to work */
     }
 
     .selected-text {
@@ -315,7 +433,9 @@ function getPopupStyles() {
     .actions {
       display: flex;
       gap: 8px;
-      margin-top: 16px;
+      flex-shrink: 0;
+      padding: 12px 16px;
+      border-top: 1px solid rgba(120, 113, 108, 0.2);
       padding-top: 12px;
       border-top: 1px solid rgba(120, 113, 108, 0.2);
     }
@@ -539,6 +659,23 @@ function setupEventListeners() {
   // Text selection on mouseup
   document.addEventListener('mouseup', handleSelection);
 
+  // Hide trigger icon when the selection is cleared.
+  // Delay slightly so onclick on the trigger icon fires before we hide it.
+  document.addEventListener('selectionchange', () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.toString().trim()) {
+      setTimeout(() => {
+        const current = window.getSelection();
+        if (!current || !current.toString().trim()) {
+          if (triggerIcon && triggerIcon.classList.contains('visible')) {
+            triggerIcon.classList.remove('visible');
+            triggerIcon.classList.add('hidden');
+          }
+        }
+      }, 120);
+    }
+  });
+
   // Close popup on click outside (but allow interaction inside popup)
   document.addEventListener('mousedown', (e) => {
     // Check if click is inside the shadow host
@@ -552,6 +689,12 @@ function setupEventListeners() {
     const isTriggerVisible = triggerIcon && !triggerIcon.classList.contains('hidden');
 
     if (isPopupVisible || isTriggerVisible) {
+      // When pinned, keep the popup open so the user can select new text
+      // and load it into the fixed popup position
+      if (isPinned && isPopupVisible) {
+        return;
+      }
+
       // Small delay to allow text selection inside popup
       setTimeout(() => {
         const selection = window.getSelection();
@@ -585,6 +728,20 @@ function setupEventListeners() {
 function setupDragListeners() {
   // Use popup element for mousedown since it's inside the closed shadow root
   popup.addEventListener('mousedown', (e) => {
+    const rect = popup.getBoundingClientRect();
+    const resizeHandleSize = 18;
+    const clickedResizeHandle = (
+      rect.right - e.clientX <= resizeHandleSize &&
+      rect.bottom - e.clientY <= resizeHandleSize
+    );
+
+    if (clickedResizeHandle) {
+      isResizing = true;
+      resizeStarted = false;
+      lastKnownSize = { width: popup.offsetWidth, height: popup.offsetHeight };
+      return;
+    }
+
     // Check if clicking header or inside header
     const header = e.target.closest('.popup-header');
 
@@ -592,8 +749,6 @@ function setupDragListeners() {
       isDragging = true;
       dragStartX = e.clientX;
       dragStartY = e.clientY;
-
-      const rect = popup.getBoundingClientRect();
       initialPopupX = rect.left;
       initialPopupY = rect.top;
 
@@ -611,6 +766,14 @@ function setupDragListeners() {
       popup.style.left = `${initialPopupX + deltaX}px`;
       popup.style.top = `${initialPopupY + deltaY}px`;
     }
+
+    if (isResizing && popup) {
+      const w = popup.offsetWidth;
+      const h = popup.offsetHeight;
+      if (w !== lastKnownSize.width || h !== lastKnownSize.height) {
+        resizeStarted = true;
+      }
+    }
   });
 
   document.addEventListener('mouseup', () => {
@@ -618,9 +781,20 @@ function setupDragListeners() {
       isDragging = false;
       document.body.style.userSelect = '';
       if (popup) {
-        popup.style.transition = ''; // Re-enable transitions
+        popup.style.transition = '';
       }
     }
+
+    if (isResizing && popup && !popup.classList.contains('hidden') && resizeStarted) {
+      const w = popup.offsetWidth;
+      const h = popup.offsetHeight;
+      lastKnownSize = { width: w, height: h };
+      popupSize = { width: w, height: h };
+      chrome.storage.local.set({ POPUP_SIZE: popupSize });
+    }
+
+    isResizing = false;
+    resizeStarted = false;
   });
 }
 
@@ -682,13 +856,13 @@ function getSurroundingContext(selection) {
     const pageMetaDesc = document.querySelector('meta[name="description"]')?.content;
 
     if (pageTitle) {
-      contextParts.push(`[Page Title: ${pageTitle}]`);
+      contextParts.push(`[${getPageContextLabel('pageTitleLabel', 'Page Title')}: ${pageTitle}]`);
     }
     if (pageUrl) {
-      contextParts.push(`[Website: ${pageUrl}]`);
+      contextParts.push(`[${getPageContextLabel('websiteLabel', 'Website')}: ${pageUrl}]`);
     }
     if (pageMetaDesc) {
-      contextParts.push(`[Description: ${pageMetaDesc.slice(0, 200)}]`);
+      contextParts.push(`[${getPageContextLabel('descriptionLabel', 'Description')}: ${pageMetaDesc.slice(0, 200)}]`);
     }
 
     // Add surrounding text context
@@ -758,74 +932,68 @@ function showTriggerIcon(rect, text, mode) {
 
 // Show popup at selection position with smart edge detection
 function showPopup(rect, text, mode) {
-  const POPUP_WIDTH = 380;
-  // const POPUP_HEIGHT_ESTIMATE = 300; // Removed as we calculate real height
-  const MARGIN = 12; // Margin from edges
-  const GAP = 8; // Gap between selection and popup
+  const selectionContext = currentSelection?.context || getSurroundingContext(window.getSelection());
+  activeSelection = {
+    text,
+    context: selectionContext
+  };
 
+  // If pinned, skip repositioning — just update content at current position
+  if (isPinned) {
+    popup.classList.remove('hidden');
+    popup.style.opacity = '1';
+    analyzeText(text, activeSelection.context, mode);
+    return;
+  }
+
+  const MARGIN = 12;
+  const GAP = 8;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
-  // Show popup with scroll support for long content
-  // First, set temporary position and display to calculate dimensions
+  // Apply saved (or default) size before measuring
+  popup.style.width = `${popupSize.width}px`;
+  if (popupSize.height) {
+    popup.style.height = `${popupSize.height}px`;
+  } else {
+    popup.style.height = '';
+  }
+
   popup.style.opacity = '0';
   popup.classList.remove('hidden');
-  popup.innerHTML = renderLoading(); // Start with loading state
-
-  // Set max dimensions before positioning
-  const MAX_HEIGHT = Math.min(600, viewportHeight - MARGIN * 2);
-  popup.style.maxHeight = `${MAX_HEIGHT}px`;
-  popup.style.overflowY = 'auto'; // Enable scrolling within popup
+  popup.innerHTML = renderLoading();
+  syncPinButton();
+  popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
+  popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
   requestAnimationFrame(() => {
-    const popupRect = popup.getBoundingClientRect();
-    const popupHeight = popupRect.height;
+    const popupW = popup.offsetWidth;
+    const popupH = popup.offsetHeight;
 
-    // Start with position below selection, centered on selection
-    let left = rect.left + (rect.width / 2) - (POPUP_WIDTH / 2);
+    // Center horizontally on selection
+    let left = rect.left + (rect.width / 2) - (popupW / 2);
     let top = rect.bottom + GAP;
 
-    // Check right edge
-    if (left + POPUP_WIDTH > viewportWidth - MARGIN) {
-      left = viewportWidth - POPUP_WIDTH - MARGIN;
-    }
+    // Clamp to viewport edges
+    left = Math.max(MARGIN, Math.min(left, viewportWidth - popupW - MARGIN));
 
-    // Check left edge
-    if (left < MARGIN) {
-      left = MARGIN;
-    }
-
-    // Check bottom edge - if not enough space below, try above
-    if (top + popupHeight > viewportHeight - MARGIN) {
-      const topSpace = rect.top - MARGIN - GAP;
-      const bottomSpace = viewportHeight - (rect.bottom + GAP + MARGIN);
-
-      // If more space above, or if simply not enough space below
-      if (topSpace > bottomSpace || topSpace >= popupHeight) {
-        // Position above
-        top = rect.top - popupHeight - GAP;
-
-        // If it still doesn't fit (even above), cap the height
-        if (top < MARGIN) {
-          top = MARGIN;
-          // Recalculate max-height to fit between margin and selection
-          const availableHeight = rect.top - MARGIN - GAP;
-          popup.style.maxHeight = `${availableHeight}px`;
-        }
+    // Prefer below; flip above if not enough room
+    if (top + popupH > viewportHeight - MARGIN) {
+      const topAbove = rect.top - popupH - GAP;
+      if (topAbove >= MARGIN) {
+        top = topAbove;
       } else {
-        // Position below but cap height
-        const availableHeight = viewportHeight - (rect.bottom + GAP) - MARGIN;
-        popup.style.maxHeight = `${availableHeight}px`;
+        top = MARGIN;
       }
     }
 
-    // Final position application
     popup.style.left = `${left}px`;
     popup.style.top = `${top}px`;
     popup.style.opacity = '1';
 
-    // Analyze text after positioning
-    analyzeText(text, currentSelection.context, mode);
+    lastKnownSize = { width: popup.offsetWidth, height: popup.offsetHeight };
+
+    analyzeText(text, activeSelection.context, mode);
   });
 }
 
@@ -870,6 +1038,9 @@ function analyzeText(text, context, mode) {
 
   // Render initial skeleton popup
   popup.innerHTML = renderResult(text, {}, mode, true);
+  syncPinButton();
+  popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
+  popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
   // Setup initial actions (disabled save/listen while streaming)
   const speakBtn = popup.querySelector('[data-action="speak"]');
@@ -891,6 +1062,7 @@ function analyzeText(text, context, mode) {
     const handleMessage = (msg) => {
       if (msg.error) {
         popup.innerHTML = renderError(msg.message);
+        syncPinButton();
         setupErrorActions();
         isLoading = false;
         streamFinished = true;
@@ -922,7 +1094,13 @@ function analyzeText(text, context, mode) {
       try {
         const fullData = JSON.parse(streamingText);
         popup.innerHTML = renderResult(text, fullData, mode);
+        syncPinButton();
         setupPopupActions(fullData);
+        if (autoPlayAudio) {
+          const textToSpeak = fullData.audio_text || text;
+          const lang = fullData.language || detectLanguage(textToSpeak);
+          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+        }
       } catch (e) {
         // Fallback if final JSON is malformed
         const partialData = extractStreamingJson(streamingText);
@@ -931,15 +1109,42 @@ function analyzeText(text, context, mode) {
         if (speakBtn) speakBtn.disabled = false;
         if (saveBtn) saveBtn.disabled = false;
 
-        // Still setup actions with partial data
+        syncPinButton();
         setupPopupActions(partialData);
+        if (autoPlayAudio) {
+          const textToSpeak = partialData.audio_text || text;
+          const lang = partialData.language || detectLanguage(textToSpeak);
+          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+        }
       }
     }
   } catch (error) {
     popup.innerHTML = renderError(error.message);
+    syncPinButton();
     setupErrorActions();
     isLoading = false;
   }
+}
+
+// Pin button HTML (reused across all header renders)
+function pinBtnHtml() {
+  return `
+    <button class="pin-btn${isPinned ? ' active' : ''}" data-action="pin" title="${isPinned ? (getTransl('unpinPopupTitle') || 'Unpin popup') : (getTransl('pinPopupTitle') || 'Pin popup position')}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+      </svg>
+    </button>`;
+}
+
+// Sync pin button visual state after any innerHTML update
+function syncPinButton() {
+  const pinBtn = popup.querySelector('[data-action="pin"]');
+  if (!pinBtn) return;
+  pinBtn.classList.toggle('active', isPinned);
+  pinBtn.title = isPinned
+    ? (getTransl('unpinPopupTitle') || 'Unpin popup')
+    : (getTransl('pinPopupTitle') || 'Pin popup position');
+  popup.classList.toggle('pinned', isPinned);
 }
 
 // Render loading state
@@ -950,16 +1155,20 @@ function renderLoading() {
   return `
     <div class="popup-header">
       <span class="popup-title">${escapeHtml(analyzingStr)}</span>
-      <button class="close-btn" onclick="this.closest('.popup').classList.add('hidden')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="header-actions">
+        ${pinBtnHtml()}
+        <button class="close-btn" data-action="close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="loading">
       <div class="loading-spinner"></div>
       <div class="loading-text">${escapeHtml(insightsStr)}</div>
     </div>
+    <div class="resize-hint"></div>
   `;
 }
 
@@ -971,17 +1180,21 @@ function renderError(message) {
   return `
     <div class="popup-header">
       <span class="popup-title">${escapeHtml(errorTitleStr)}</span>
-      <button class="close-btn" data-action="close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="header-actions">
+        ${pinBtnHtml()}
+        <button class="close-btn" data-action="close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="error">
       <div class="error-icon">⚠️</div>
       <div class="error-message">${escapeHtml(message)}</div>
       <button class="error-retry" data-action="retry">${escapeHtml(tryAgainStr)}</button>
     </div>
+    <div class="resize-hint"></div>
   `;
 }
 
@@ -1018,56 +1231,67 @@ function renderResult(originalText, data, mode, isStreamingInit = false) {
   return `
     <div class="popup-header">
       <span class="popup-title">${escapeHtml(modeLabel)}</span>
-      <button class="close-btn" data-action="close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="header-actions">
+        ${pinBtnHtml()}
+        <button class="close-btn" data-action="close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="popup-content">
       <div class="selected-text">${displayText}</div>
-      
+
       <div class="section">
         <div class="section-label">${escapeHtml(meaningLabel)}</div>
         <div class="section-content meaning-content">${isStreamingInit ? skeletonHtml : escapeHtml(data.meaning)}</div>
       </div>
-      
+
       ${(data.grammar || isStreamingInit) ? `
         <div class="section">
           <div class="section-label">${escapeHtml(grammarLabel)}</div>
           <div class="section-content grammar-content">${isStreamingInit ? skeletonHtml : escapeHtml(data.grammar)}</div>
         </div>
       ` : ''}
-      <div class="actions">
-        <button class="action-btn primary" data-action="speak">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-          </svg>
-          ${escapeHtml(listenLabel)}
-        </button>
-        <button class="action-btn secondary" data-action="save">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
-          ${escapeHtml(saveLabel)}
-        </button>
-      </div>
     </div>
+    <div class="actions">
+      <button class="action-btn primary" data-action="speak">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+        ${escapeHtml(listenLabel)}
+      </button>
+      <button class="action-btn secondary" data-action="save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        ${escapeHtml(saveLabel)}
+      </button>
+    </div>
+    <div class="resize-hint"></div>
   `;
+}
+
+// Toggle pin state
+function handlePinAction() {
+  isPinned = !isPinned;
+  syncPinButton();
 }
 
 // Setup error popup actions (retry + close)
 function setupErrorActions() {
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
+  popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
   popup.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
-    if (currentSelection) {
-      const wordCount = currentSelection.text.split(/\s+/).length;
+    if (activeSelection) {
+      const wordCount = activeSelection.text.split(/\s+/).length;
       const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
       popup.innerHTML = renderLoading();
-      analyzeText(currentSelection.text, currentSelection.context, mode);
+      analyzeText(activeSelection.text, activeSelection.context, mode);
     }
   });
 }
@@ -1075,9 +1299,10 @@ function setupErrorActions() {
 // Setup popup button actions
 function setupPopupActions(data) {
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
+  popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
   popup.querySelector('[data-action="speak"]')?.addEventListener('click', () => {
-    const textToSpeak = data.audio_text || currentSelection?.text;
+    const textToSpeak = data.audio_text || activeSelection?.text;
     const lang = data.language || detectLanguage(textToSpeak);
 
     chrome.runtime.sendMessage({
@@ -1088,15 +1313,15 @@ function setupPopupActions(data) {
   });
 
   popup.querySelector('[data-action="save"]')?.addEventListener('click', () => {
-    saveWord(currentSelection?.text, data);
+    saveWord(activeSelection?.text, data);
   });
 
   popup.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
-    if (currentSelection) {
-      const wordCount = currentSelection.text.split(/\s+/).length;
+    if (activeSelection) {
+      const wordCount = activeSelection.text.split(/\s+/).length;
       const mode = wordCount <= CONFIG.WORD_THRESHOLD ? 'word' : 'phrase';
       popup.innerHTML = renderLoading();
-      analyzeText(currentSelection.text, currentSelection.context, mode);
+      analyzeText(activeSelection.text, activeSelection.context, mode);
     }
   });
 }
@@ -1126,7 +1351,7 @@ async function saveWord(text, data) {
       text,
       meaning: data.meaning,
       grammar: data.grammar,
-      context: currentSelection?.context,
+      context: activeSelection?.context,
       language: data.language || 'en',
       url: window.location.href
     };
@@ -1202,12 +1427,17 @@ function showToast(message, action = null) {
 function hidePopup() {
   if (popup) {
     popup.classList.add('hidden');
+    if (!isPinned) {
+      popup.classList.remove('pinned');
+    }
   }
   if (triggerIcon) {
     triggerIcon.classList.remove('visible');
     triggerIcon.classList.add('hidden');
   }
+  // Do NOT reset isPinned here — pin persists until user explicitly unpins
   currentSelection = null;
+  activeSelection = null;
 }
 
 // Escape HTML to prevent XSS

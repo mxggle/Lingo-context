@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.2.1] - 2026-03-10
+
+### Features
+
+- Added a resizable and pinnable in-page analysis popup with improved layout handling
+- Introduced instant popup auth-state transitions, richer popup animations, and a visible extension version label
+- Added auto-play audio support for pronunciations
+- Refactored selection handling around `activeSelection` to improve popup interaction flow
+- Expanded internationalization support and updated locale message files
+
+### Fixes
+
+- Restored the production backend as the shipped default configuration
+- Disabled development mode in shipped production defaults
+- Fixed stale avatar state when switching to an account without a profile image
+- Included i18n fixes made on this branch
+
+### Release
+
+- Bumped extension and package metadata to version `1.2.1`
+- Updated production packaging logic and release documentation to match the current production configuration
+
 ## [1.2.0] - 2026-02-28
 
 ### Features
