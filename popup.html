@@ -110,6 +110,17 @@
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(120, 113, 108, 0.2);
       border-radius: 10px;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    @keyframes toggleSaved {
+      0%   { background: rgba(255, 255, 255, 0.03); border-color: rgba(120, 113, 108, 0.2); }
+      30%  { background: rgba(34, 197, 94, 0.12);   border-color: rgba(34, 197, 94, 0.35); }
+      100% { background: rgba(255, 255, 255, 0.03); border-color: rgba(120, 113, 108, 0.2); }
+    }
+
+    .toggle-group.saved {
+      animation: toggleSaved 1.2s ease forwards;
     }
 
     .toggle-label {
@@ -225,6 +236,15 @@
     footer a:hover {
       text-decoration: underline;
     }
+
+    .auth-view {
+      transition: opacity 0.2s ease;
+    }
+
+    .auth-view.hidden-auth {
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 
@@ -242,7 +262,7 @@
 
     <div class="section">
       <div class="section-title" data-i18n="accountSection">Account</div>
-      <div id="authSection">
+      <div id="authSection" class="auth-view">
         <button class="btn" id="loginBtn"
           style="background: white; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px;">
           <svg width="18" height="18" viewBox="0 0 18 18">
@@ -262,7 +282,7 @@
           <span data-i18n="loginGoogle">Login with Google</span>
         </button>
       </div>
-      <div id="userInfo" style="display: none;">
+      <div id="userInfo" class="auth-view hidden-auth" style="display: none;">
         <div
           style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
           <img id="userAvatar" src="" style="width: 32px; height: 32px; border-radius: 50%; display: none;">
@@ -304,6 +324,7 @@
         <a href="https://github.com/mxggle/Lingo-context/issues/new" target="_blank"
           data-i18n="feedbackLink">Feedback</a>
       </p>
+      <p style="margin-top: 4px;" id="versionDisplay"></p>
     </footer>
 
     <div class="status" id="status"></div>

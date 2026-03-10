@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dashboardBtn = document.getElementById('dashboardBtn');
     const status = document.getElementById('status');
 
+    // Display version number
+    const versionDisplay = document.getElementById('versionDisplay');
+    if (versionDisplay) {
+        versionDisplay.textContent = `v${chrome.runtime.getManifest().version}`;
+    }
+
     // Load saved settings
     const settings = await chrome.storage.local.get([
         'EXTENSION_ENABLED'
@@ -23,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Auto-save settings
+    const toggleGroup = enabledToggle.closest('.toggle-group');
     enabledToggle.addEventListener('change', async () => {
         const enabled = enabledToggle.checked;
 
@@ -31,8 +38,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 EXTENSION_ENABLED: enabled
             });
 
-            // Optional: show subtle status or just rely on the toggle state
-            // showStatus('Settings saved'); 
+            // Brief pulse animation to confirm save
+            if (toggleGroup) {
+                toggleGroup.classList.remove('saved');
+                // Force reflow to restart animation
+                void toggleGroup.offsetWidth;
+                toggleGroup.classList.add('saved');
+                toggleGroup.addEventListener('animationend', () => {
+                    toggleGroup.classList.remove('saved');
+                }, { once: true });
+            }
         } catch (error) {
             showStatus('Failed to save settings', true);
             // Revert toggle if save failed
@@ -84,14 +99,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    function showAuthView(el) {
+        el.style.display = 'block';
+        requestAnimationFrame(() => el.classList.remove('hidden-auth'));
+    }
+
+    function hideAuthView(el) {
+        el.classList.add('hidden-auth');
+        el.addEventListener('transitionend', () => {
+            el.style.display = 'none';
+        }, { once: true });
+    }
+
     async function updateAuthUI() {
         // First check local storage (set by content script on success page)
         const stored = await chrome.storage.local.get(['LINGOCONTEXT_USER', 'LINGOCONTEXT_LOGGED_IN']);
 
         if (stored.LINGOCONTEXT_LOGGED_IN && stored.LINGOCONTEXT_USER) {
             const user = stored.LINGOCONTEXT_USER;
-            authSection.style.display = 'none';
-            userInfo.style.display = 'block';
+            hideAuthView(authSection);
+            showAuthView(userInfo);
             userName.textContent = user.display_name || 'User';
             userEmail.textContent = user.email;
             if (user.avatar_url) {
@@ -116,8 +143,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     LINGOCONTEXT_LOGGED_IN: true
                 });
 
-                authSection.style.display = 'none';
-                userInfo.style.display = 'block';
+                hideAuthView(authSection);
+                showAuthView(userInfo);
                 userName.textContent = data.user.display_name || 'User';
                 userEmail.textContent = data.user.email;
                 if (data.user.avatar_url) {
@@ -125,14 +152,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     userAvatar.style.display = 'block';
                 }
             } else {
-                authSection.style.display = 'block';
-                userInfo.style.display = 'none';
+                showAuthView(authSection);
+                hideAuthView(userInfo);
             }
         } catch (error) {
             console.error('Failed to check auth status:', error);
             // Assume not logged in or backend down
-            authSection.style.display = 'block';
-            userInfo.style.display = 'none';
+            showAuthView(authSection);
+            hideAuthView(userInfo);
         }
     }
 });
