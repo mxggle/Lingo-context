@@ -68,6 +68,34 @@
     "clearFilterBtn": {
         "message": "清除筛选"
     },
+    "wordSearchPlaceholder": {
+        "message": "搜索单词或释义"
+    },
+    "allLanguagesOption": {
+        "message": "所有语言"
+    },
+    "allGrammarOption": {
+        "message": "所有语法"
+    },
+    "showingRecentWordsSummary": {
+        "message": "显示最近的 $1 个单词",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showingFilteredWordsSummary": {
+        "message": "显示 $2 个匹配单词中的 $1 个",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
     "exportPdfBtn": {
         "message": "导出 CSV"
     },

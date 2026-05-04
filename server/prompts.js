@@ -1,5 +1,12 @@
-function getSystemInstruction(targetLanguage) {
-  const lang = targetLanguage || "English";
+const { normalizeTargetLanguage } = require('./targetLanguage');
+
+function getSystemInstruction(targetLanguage, options = {}) {
+  const config = normalizeTargetLanguage(targetLanguage);
+  const lang = config.promptLabel;
+  const retryOverride = options.strictLanguageOnly === true
+    ? '\n- **RETRY OVERRIDE**: Your previous answer used the wrong explanation language. Regenerate the full JSON now and keep every explanation field strictly in the requested target language.'
+    : '';
+
   return `You are a Context-Adaptive Universal Translator Engine. Your goal is to analyze text selections within their specific context, determine the appropriate domain expertise, and provide explanations/translations in the user's requested target language.
 
 ### INPUT DATA STRUCTURE
@@ -35,6 +42,9 @@ You will receive a JSON object with:
 - **Page Context**: When context includes "[Page Title:]" or "[Website:]", use that to infer the domain/topic. For example, if page is about tech/AI, "Opus" likely refers to Claude Opus AI model, not audio codec.
 - **Ambiguity Handling**: If context is limited/ambiguous, prefer the most common meaning BUT include a note in nuance_note explaining other possible meanings. When in doubt, provide both interpretations.
 - **TARGET LANGUAGE REQUIREMENT**: The "meaning", "grammar", and "nuance_note" fields MUST be written ENTIRELY in ${lang}. This is NON-NEGOTIABLE.
+- **TARGET LANGUAGE DETAILS**: ${config.promptDetails}
+- **NO LANGUAGE DRIFT**: Do not answer the explanation fields in English unless the target language is English. Source words or product names may appear unchanged, but the explanatory sentences must stay in ${lang}.
+- **SCRIPT ENFORCEMENT**: When the target language is Simplified Chinese or Traditional Chinese, use Chinese characters in the explanation fields instead of English sentences.${retryOverride}
 - **Segments**: For non-segmented languages (English, Spanish), the segments array can contain just the single word unless it's a compound idiom.
 
 ### EXAMPLES
@@ -143,10 +153,11 @@ Output:
 }
 
 function generatePrompt(text, context, targetLanguage) {
+  const config = normalizeTargetLanguage(targetLanguage);
   return JSON.stringify({
     selection: text,
     context: context,
-    target_language: targetLanguage || "English"
+    target_language: config.promptLabel
   });
 }
 
@@ -154,4 +165,3 @@ module.exports = {
   getSystemInstruction,
   generatePrompt
 };
-

@@ -68,6 +68,34 @@
     "clearFilterBtn": {
         "message": "Clear Filter"
     },
+    "wordSearchPlaceholder": {
+        "message": "Search words or meanings"
+    },
+    "allLanguagesOption": {
+        "message": "All languages"
+    },
+    "allGrammarOption": {
+        "message": "All grammar"
+    },
+    "showingRecentWordsSummary": {
+        "message": "Showing $1 most recent words",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showingFilteredWordsSummary": {
+        "message": "Showing $1 of $2 matching words",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
     "exportPdfBtn": {
         "message": "Export CSV"
     },

@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', init);
 
 let allWords = []; // Store words for export
 let currentFilterDate = null;
+const wordFilters = {
+    query: '',
+    language: ''
+};
 
 async function init() {
     const refreshBtn = document.getElementById('refreshBtn');
@@ -14,17 +18,10 @@ async function init() {
 
     const clearFilterBtn = document.getElementById('clearFilterBtn');
     if (clearFilterBtn) {
-        clearFilterBtn.addEventListener('click', () => {
-            currentFilterDate = null;
-            document.querySelectorAll('.graph-cell').forEach(c => c.classList.remove('selected'));
-            renderWordsList(allWords.slice(0, 100));
-
-            const title = document.getElementById('wordsSectionTitle');
-            if (title) title.textContent = getTransl('recentVocabTitle') || 'Recent Vocabulary';
-
-            clearFilterBtn.style.display = 'none';
-        });
+        clearFilterBtn.addEventListener('click', clearWordFilters);
     }
+
+    setupWordFilters();
 
     // Auth UI Elements
     const loginView = document.getElementById('loginView');
@@ -216,6 +213,13 @@ async function loadInterfaceLanguage(langCode) {
             }
         });
 
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (currentLocaleData[key] && currentLocaleData[key].message) {
+                el.placeholder = currentLocaleData[key].message;
+            }
+        });
+
         // Update elements with data-i18n-title
         document.querySelectorAll('[data-i18n-title]').forEach(el => {
             const key = el.getAttribute('data-i18n-title');
@@ -227,14 +231,14 @@ async function loadInterfaceLanguage(langCode) {
 
         // Re-render dynamic content nicely to apply translations
         if (allWords && allWords.length > 0) {
-            const currentFilterDateLocal = currentFilterDate; // backup
             if (document.getElementById('dashboardView').style.display === 'block') {
-                if (currentFilterDateLocal) {
-                    filterByDate(currentFilterDateLocal);
-                } else {
-                    renderWordsList(allWords.slice(0, 100));
-                }
+                populateWordFilterOptions(allWords);
+                applyWordFilters();
             }
+        } else {
+            populateWordFilterOptions([]);
+            updateWordsSectionTitle();
+            updateWordFiltersSummary(0, 0);
         }
 
     } catch (e) {
@@ -294,7 +298,8 @@ async function fetchWords(backendUrl) {
         allWords = words;
 
         renderContributionGraph(words);
-        renderWordsList(words.slice(0, 100)); // Render latest 100 by default
+        populateWordFilterOptions(words);
+        applyWordFilters();
     } catch (e) {
         console.error(e);
         list.innerHTML = `<div class="error">${getTransl('failedMsg') || 'Failed to load words. Is the backend running?'}</div>`;
@@ -463,29 +468,153 @@ function renderContributionGraph(words) {
 
 function filterByDate(dateStr) {
     currentFilterDate = dateStr;
-    const filteredWords = allWords.filter(word => {
-        const d = new Date(word.saved_at);
-        const wordDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        return wordDateStr === dateStr;
+    applyWordFilters();
+}
+
+function setupWordFilters() {
+    const searchInput = document.getElementById('wordSearchInput');
+    const languageSelect = document.getElementById('wordLanguageFilter');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            wordFilters.query = searchInput.value.trim();
+            applyWordFilters();
+        });
+    }
+
+    if (languageSelect) {
+        languageSelect.addEventListener('change', () => {
+            wordFilters.language = languageSelect.value;
+            applyWordFilters();
+        });
+    }
+}
+
+function populateWordFilterOptions(words) {
+    populateSelectOptions('wordLanguageFilter', words.map(word => word.language), 'allLanguagesOption', 'All languages');
+}
+
+function populateSelectOptions(selectId, values, defaultLabelKey, fallbackLabel) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const selectedValue = select.value;
+    const uniqueValues = [...new Set(
+        values
+            .map(value => typeof value === 'string' ? value.trim() : '')
+            .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+
+    const defaultLabel = getTransl(defaultLabelKey) || fallbackLabel;
+    select.innerHTML = `<option value="">${escapeHtml(defaultLabel)}</option>${uniqueValues
+        .map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+        .join('')}`;
+
+    if (uniqueValues.includes(selectedValue)) {
+        select.value = selectedValue;
+    } else {
+        select.value = '';
+        if (selectId === 'wordLanguageFilter') wordFilters.language = '';
+    }
+}
+
+function applyWordFilters() {
+    const filteredWords = getFilteredWords();
+    renderWordsList(filteredWords.slice(0, 100));
+    updateWordsSectionTitle();
+    updateWordFiltersSummary(filteredWords.length, allWords.length);
+    updateClearFilterButton();
+}
+
+function getFilteredWords() {
+    const normalizedQuery = wordFilters.query.toLowerCase();
+
+    return allWords.filter(word => {
+        if (currentFilterDate && getWordDateStr(word.saved_at) !== currentFilterDate) {
+            return false;
+        }
+
+        if (wordFilters.language && word.language !== wordFilters.language) {
+            return false;
+        }
+
+        if (!normalizedQuery) {
+            return true;
+        }
+
+        const searchableText = [
+            word.text,
+            word.meaning,
+            word.language,
+            word.grammar,
+            ...(word.contexts || []).map(ctx => ctx.context)
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+        return searchableText.includes(normalizedQuery);
     });
+}
 
-    renderWordsList(filteredWords);
+function clearWordFilters() {
+    currentFilterDate = null;
+    wordFilters.query = '';
+    wordFilters.language = '';
 
+    const searchInput = document.getElementById('wordSearchInput');
+    const languageSelect = document.getElementById('wordLanguageFilter');
+
+    if (searchInput) searchInput.value = '';
+    if (languageSelect) languageSelect.value = '';
+
+    document.querySelectorAll('.graph-cell').forEach(c => c.classList.remove('selected'));
+    applyWordFilters();
+}
+
+function updateWordsSectionTitle() {
     const title = document.getElementById('wordsSectionTitle');
-    const clearBtn = document.getElementById('clearFilterBtn');
+    if (!title) return;
 
-    if (title) {
-        // Just use simple parsing to avoid time zone issues
-        const [y, m, d] = dateStr.split('-');
+    if (currentFilterDate) {
+        const [y, m, d] = currentFilterDate.split('-');
         const displayDate = new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-
-        const templateMsg = getTransl('wordsOnDate') || `Words on $1`;
+        const templateMsg = getTransl('wordsOnDate') || 'Words on $1';
         title.textContent = processTranslPlaceholders(templateMsg, displayDate);
+        return;
     }
 
-    if (clearBtn) {
-        clearBtn.style.display = 'block';
+    title.textContent = getTransl('recentVocabTitle') || 'Recent Vocabulary';
+}
+
+function updateWordFiltersSummary(filteredCount, totalCount) {
+    const summary = document.getElementById('wordFiltersSummary');
+    if (!summary) return;
+
+    const hasAnyFilter = Boolean(currentFilterDate || wordFilters.query || wordFilters.language);
+    const resultCount = Math.min(filteredCount, 100);
+
+    if (hasAnyFilter) {
+        const template = getTransl('showingFilteredWordsSummary') || 'Showing $1 of $2 matching words';
+        summary.textContent = processTranslPlaceholders(template, resultCount, filteredCount);
+        return;
     }
+
+    const template = getTransl('showingRecentWordsSummary') || 'Showing $1 most recent words';
+    summary.textContent = processTranslPlaceholders(template, Math.min(totalCount, 100));
+}
+
+function updateClearFilterButton() {
+    const clearBtn = document.getElementById('clearFilterBtn');
+    if (!clearBtn) return;
+
+    const hasAnyFilter = Boolean(currentFilterDate || wordFilters.query || wordFilters.language);
+    clearBtn.style.display = hasAnyFilter ? 'block' : 'none';
+}
+
+function getWordDateStr(savedAt) {
+    const d = new Date(savedAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // Render contexts with fold/expand functionality
@@ -661,15 +790,8 @@ async function deleteWord(wordId) {
         // Keep in-memory state in sync with backend so exports/filters/graph are accurate.
         allWords = allWords.filter(word => String(word.id) !== String(wordId));
         renderContributionGraph(allWords);
-
-        if (currentFilterDate) {
-            const filteredWords = allWords.filter(word => {
-                const d = new Date(word.saved_at);
-                const wordDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                return wordDateStr === currentFilterDate;
-            });
-            renderWordsList(filteredWords);
-        }
+        populateWordFilterOptions(allWords);
+        applyWordFilters();
 
         // Remove the word card from DOM directly without refreshing the list
         const wordCard = document.querySelector(`.word-card[data-word-id="${wordId}"]`);

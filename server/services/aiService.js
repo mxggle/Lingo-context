@@ -2,6 +2,7 @@
 
 const { getSystemInstruction, generatePrompt } = require('../prompts');
 const { getProvider } = require('./providers');
+const { normalizeTargetLanguage, shouldRetryForLanguageMismatch } = require('../targetLanguage');
 
 // ── In-memory result cache ─────────────────────────────────────────────────
 // Caches the last CACHE_MAX_SIZE unique (text, context, targetLanguage) lookups
@@ -43,25 +44,36 @@ function calculateCost(promptTokens, completionTokens) {
 
 // Call AI provider and return parsed result (cache-aware)
 async function analyzeText({ text, context, targetLanguage }) {
-    const cacheKey = _cacheKey(text, context, targetLanguage);
+    const normalizedTargetLanguage = normalizeTargetLanguage(targetLanguage).name;
+    const cacheKey = _cacheKey(text, context, normalizedTargetLanguage);
     const cached = _cacheGet(cacheKey);
     if (cached) return cached;
 
     const provider = getProvider();
-    const systemInstruction = getSystemInstruction(targetLanguage);
-    const prompt = generatePrompt(text, context, targetLanguage);
+    const prompt = generatePrompt(text, context, normalizedTargetLanguage);
+    let result;
+    let usage;
 
-    const { contentText, usage } = await provider.callAPI(systemInstruction, prompt, { targetLanguage });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const systemInstruction = getSystemInstruction(normalizedTargetLanguage, {
+            strictLanguageOnly: attempt > 0
+        });
+        const response = await provider.callAPI(systemInstruction, prompt, {
+            targetLanguage: normalizedTargetLanguage
+        });
+        usage = response.usage;
 
-    const cost = calculateCost(usage.promptTokens, usage.completionTokens);
+        const jsonMatch = response.contentText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Invalid JSON format in response');
 
-    // Parse JSON from content
-    const jsonMatch = contentText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Invalid JSON format in response');
+        result = JSON.parse(jsonMatch[0]);
+        if (result.source_language && !result.language) {
+            result.language = result.source_language;
+        }
 
-    const result = JSON.parse(jsonMatch[0]);
-    if (result.source_language && !result.language) {
-        result.language = result.source_language;
+        if (!shouldRetryForLanguageMismatch(result, normalizedTargetLanguage) || attempt > 0) {
+            break;
+        }
     }
 
     // Furigana reconstruction for Japanese
@@ -80,6 +92,7 @@ async function analyzeText({ text, context, targetLanguage }) {
         result.furigana = text;
     }
 
+    const cost = calculateCost(usage.promptTokens, usage.completionTokens);
     const response2 = {
         result,
         usage: { ...usage, cost }

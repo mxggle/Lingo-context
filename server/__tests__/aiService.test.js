@@ -54,7 +54,8 @@ describe('aiService.js', () => {
 
             expect(mockProvider.callAPI).toHaveBeenCalledWith(
                 'mock system instruction',
-                'mock prompt'
+                'mock prompt',
+                { targetLanguage: 'Spanish' }
             );
 
             // result.language fallback
@@ -137,6 +138,37 @@ describe('aiService.js', () => {
             mockProvider.callAPI.mockRejectedValueOnce(new Error('Bad request from API'));
 
             await expect(analyzeText(defaultParams)).rejects.toThrow('Bad request from API');
+        });
+
+        it('should retry once when Simplified Chinese response comes back in English', async () => {
+            mockProvider.callAPI
+                .mockResolvedValueOnce({
+                    contentText: JSON.stringify({
+                        source_language: 'en',
+                        meaning: 'hello',
+                        grammar: 'noun',
+                        nuance_note: 'used as a greeting'
+                    }),
+                    usage: { model: 'gemini-2.0-flash', promptTokens: 10, completionTokens: 20, totalTokens: 30 }
+                })
+                .mockResolvedValueOnce({
+                    contentText: JSON.stringify({
+                        source_language: 'en',
+                        meaning: '你好',
+                        grammar: '名词',
+                        nuance_note: '这里表示问候'
+                    }),
+                    usage: { model: 'gemini-2.0-flash', promptTokens: 11, completionTokens: 21, totalTokens: 32 }
+                });
+
+            const { result } = await analyzeText({
+                text: 'hello',
+                context: 'greeting',
+                targetLanguage: 'Simplified Chinese'
+            });
+
+            expect(mockProvider.callAPI).toHaveBeenCalledTimes(2);
+            expect(result.meaning).toBe('你好');
         });
     });
 });

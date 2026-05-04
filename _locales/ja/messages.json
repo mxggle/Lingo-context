@@ -68,6 +68,34 @@
     "clearFilterBtn": {
         "message": "フィルターをクリア"
     },
+    "wordSearchPlaceholder": {
+        "message": "単語や意味を検索"
+    },
+    "allLanguagesOption": {
+        "message": "すべての言語"
+    },
+    "allGrammarOption": {
+        "message": "すべての文法"
+    },
+    "showingRecentWordsSummary": {
+        "message": "最近の単語を$1件表示中",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showingFilteredWordsSummary": {
+        "message": "一致した単語 $2 件中 $1 件を表示中",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
     "exportPdfBtn": {
         "message": "CSVをエクスポート"
     },

@@ -2,6 +2,7 @@
 
 const { getSystemInstruction, generatePrompt } = require('../prompts');
 const { getProvider } = require('./providers');
+const { normalizeTargetLanguage, shouldRetryForLanguageMismatch } = require('../targetLanguage');
 
 const CACHE_MAX_SIZE = 100;
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -37,7 +38,8 @@ function calculateCost(promptTokens, completionTokens) {
 }
 
 async function analyzeTextStream({ text, context, targetLanguage }, res) {
-    const cacheKey = _cacheKey(text, context, targetLanguage);
+    const normalizedTargetLanguage = normalizeTargetLanguage(targetLanguage).name;
+    const cacheKey = _cacheKey(text, context, normalizedTargetLanguage);
     const cached = _cacheGet(cacheKey);
     if (cached) {
         const cachedChunks = Array.isArray(cached) ? cached : (cached.chunks || []);
@@ -50,63 +52,92 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
     }
 
     const provider = getProvider();
-    const systemInstruction = getSystemInstruction(targetLanguage);
-    const prompt = generatePrompt(text, context, targetLanguage);
+    const prompt = generatePrompt(text, context, normalizedTargetLanguage);
 
     const timeout = parseInt(process.env.API_TIMEOUT) || 30000;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
     let usageForLogging = null;
 
     try {
-        const { response, model } = await provider.callStreamAPI(systemInstruction, prompt, {
-            signal: controller.signal,
-            targetLanguage,
-        });
+        let finalChunks = [];
 
-        clearTimeout(timeoutId);
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            const systemInstruction = getSystemInstruction(normalizedTargetLanguage, {
+                strictLanguageOnly: attempt > 0
+            });
+            try {
+                const { response, model } = await provider.callStreamAPI(systemInstruction, prompt, {
+                    signal: controller.signal,
+                    targetLanguage: normalizedTargetLanguage,
+                });
 
-        const decoder = new TextDecoder('utf-8');
-        let buffer = '';
-        const chunks = [];
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+                const chunks = [];
 
-        for await (const value of response.body) {
-            buffer += decoder.decode(value, { stream: true });
+                for await (const value of response.body) {
+                    buffer += decoder.decode(value, { stream: true });
 
-            const lines = buffer.split('\n');
-            buffer = lines.pop(); // Save incomplete chunk for next iteration
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
 
-            for (const line of lines) {
-                // Skip SSE comment lines (e.g., ": OPENROUTER PROCESSING")
-                if (line.startsWith(':')) continue;
+                    for (const line of lines) {
+                        if (line.startsWith(':')) continue;
 
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.replace('data: ', '').trim();
-                    if (!dataStr || dataStr === '[DONE]') continue;
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim();
+                            if (!dataStr || dataStr === '[DONE]') continue;
 
-                    const parsed = provider.parseSSEData(dataStr);
-                    if (!parsed) continue;
+                            const parsed = provider.parseSSEData(dataStr);
+                            if (!parsed) continue;
 
-                    if (parsed.usage) {
-                        usageForLogging = {
-                            model,
-                            promptTokens: parsed.usage.promptTokens,
-                            completionTokens: parsed.usage.completionTokens,
-                            totalTokens: parsed.usage.totalTokens,
-                            cost: calculateCost(parsed.usage.promptTokens, parsed.usage.completionTokens)
-                        };
-                    }
+                            if (parsed.usage) {
+                                usageForLogging = {
+                                    model,
+                                    promptTokens: parsed.usage.promptTokens,
+                                    completionTokens: parsed.usage.completionTokens,
+                                    totalTokens: parsed.usage.totalTokens,
+                                    cost: calculateCost(parsed.usage.promptTokens, parsed.usage.completionTokens)
+                                };
+                            }
 
-                    if (parsed.text) {
-                        chunks.push(parsed.text);
-                        res.write(`data: ${JSON.stringify({ text: parsed.text })}\n\n`);
+                            if (parsed.text) {
+                                chunks.push(parsed.text);
+                            }
+                        }
                     }
                 }
+
+                finalChunks = chunks;
+
+                const fullText = chunks.join('');
+                const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    break;
+                }
+
+                let parsedResult;
+                try {
+                    parsedResult = JSON.parse(jsonMatch[0]);
+                } catch (error) {
+                    break;
+                }
+
+                if (!shouldRetryForLanguageMismatch(parsedResult, normalizedTargetLanguage) || attempt > 0) {
+                    break;
+                }
+            } finally {
+                clearTimeout(timeoutId);
             }
         }
 
-        if (chunks.length > 0) {
-            _cacheSet(cacheKey, { chunks, usage: usageForLogging });
+        for (const chunk of finalChunks) {
+            res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+        }
+
+        if (finalChunks.length > 0) {
+            _cacheSet(cacheKey, { chunks: finalChunks, usage: usageForLogging });
         }
 
     } catch (error) {
@@ -116,7 +147,6 @@ async function analyzeTextStream({ text, context, targetLanguage }, res) {
             : error.message;
         res.write(`data: ${JSON.stringify({ error: true, message })}\n\n`);
     } finally {
-        clearTimeout(timeoutId);
         res.write('data: [DONE]\n\n');
         res.end();
     }
