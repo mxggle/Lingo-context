@@ -243,10 +243,10 @@
         "message": "クイック定義"
     },
     "meaningLabel": {
-        "message": "AI 語義インサイト"
+        "message": "✨ AI 語義インサイト"
     },
     "grammarLabel": {
-        "message": "文脈的用法解説"
+        "message": "✨ AI 文脈的用法解説"
     },
     "saveBtn": {
         "message": "保存"

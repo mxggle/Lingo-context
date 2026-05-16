@@ -212,12 +212,9 @@ function createPopup() {
   triggerIcon = document.createElement('div');
   triggerIcon.id = 'lingo-context-trigger';
   triggerIcon.className = 'trigger-icon hidden';
-  // Simple sparkle/AI icon
+  // Custom cursor/sun icon
   triggerIcon.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
-      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-opacity="0.5" stroke-width="1.5"></path>
-      <circle cx="12" cy="12" r="4" fill="#fbbf24" stroke="none"></circle>
-    </svg>
+    <img src="${chrome.runtime.getURL('icons/cursor.png')}" alt="Translate" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));" />
   `;
   shadowRoot.appendChild(triggerIcon);
 
@@ -330,12 +327,26 @@ function getPopupStyles() {
       user-select: none;
     }
 
+    .header-left-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-logo {
+      width: 16px;
+      height: 16px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 1px white);
+    }
+
     .popup-title {
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: #a8a29e;
+      line-height: 1;
     }
 
     .header-actions {
@@ -385,11 +396,11 @@ function getPopupStyles() {
     }
 
     .selected-text {
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 26px;
+      font-weight: 700;
       color: #fafaf9;
-      margin-bottom: 12px;
-      line-height: 1.4;
+      line-height: 2;
+      overflow: visible;
     }
 
     .selected-text ruby {
@@ -400,10 +411,12 @@ function getPopupStyles() {
 
     .selected-text rt {
       display: ruby-text;
-      font-size: 0.5em;
-      text-align: center;
+      font-size: 11px;
+      font-weight: 400;
       color: #fbbf24;
+      letter-spacing: 0.04em;
     }
+
 
     .section {
       margin-bottom: 12px;
@@ -638,34 +651,52 @@ function getPopupStyles() {
     .trigger-icon {
       position: fixed;
       z-index: 2147483647;
-      width: 36px;
-      height: 36px;
-      background: #1c1917;
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      border-radius: 50%;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+      width: 48px; /* 稍微再大一点点 */
+      height: 48px;
+      background: transparent;
+      border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fbbf24;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      /* 核心视觉优化：给爪子加一层白色的“描边”感和更强的投影 */
+      filter: drop-shadow(0 0 2px white) drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       transform: scale(0);
       opacity: 0;
+      transform-origin: center;
     }
 
     .trigger-icon.visible {
-      transform: scale(1);
-      opacity: 1;
+      /* 登场动画：弹性放大 + 持续的微呼吸 */
+      animation: pawPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+                 pawPulse 2s ease-in-out infinite 0.4s;
+    }
+
+    @keyframes pawPopIn {
+      0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+      70% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    @keyframes pawPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
     }
 
     .trigger-icon:hover {
-      transform: scale(1.1);
-      background: #292524;
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
-      border-color: #fbbf24;
+      transform: scale(1.2) rotate(-10deg) !important;
+      filter: drop-shadow(0 0 4px white) drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+      animation-play-state: paused; /* 悬停时停止呼吸 */
     }
     
+    .trigger-icon.clicked {
+      transform: scale(0.6) rotate(20deg);
+      opacity: 0;
+      transition: all 0.15s ease-in;
+    }
+
     .trigger-icon.hidden {
       display: none;
     }
@@ -996,7 +1027,7 @@ function showTriggerIcon(rect, text, mode) {
 
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const ICON_SIZE = 36;
+  const ICON_SIZE = 48;
   const GAP = 10;
 
   // Position to the right of the end of selection
@@ -1025,9 +1056,12 @@ function showTriggerIcon(rect, text, mode) {
   triggerIcon.onclick = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    triggerIcon.classList.remove('visible');
-    triggerIcon.classList.add('hidden');
-    showPopup(rect, text, mode);
+    triggerIcon.classList.add('clicked');
+    setTimeout(() => {
+      triggerIcon.classList.remove('visible', 'clicked');
+      triggerIcon.classList.add('hidden');
+      showPopup(rect, text, mode);
+    }, 150);
   };
 }
 
@@ -1104,9 +1138,38 @@ function isJapaneseText(text) {
 }
 
 // Update the selected-text element with furigana HTML
-function updateFuriganaDisplay(html) {
+function updateFuriganaDisplay(html, smooth = false) {
   const el = popup?.querySelector('.selected-text');
-  if (el) el.innerHTML = html;
+  if (!el) return;
+  if (smooth) {
+    el.style.transition = 'opacity 0.1s ease';
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.innerHTML = html;
+      el.style.opacity = '1';
+    }, 100);
+  } else {
+    el.innerHTML = html;
+  }
+}
+
+// Strip ruby annotations from non-kanji characters (hiragana/katakana should not have furigana)
+function filterKanjiOnlyFurigana(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  template.content.querySelectorAll('ruby').forEach(ruby => {
+    const rt = ruby.querySelector('rt');
+    const baseText = [...ruby.childNodes]
+      .filter(n => n !== rt)
+      .map(n => n.textContent)
+      .join('');
+    if (!/[一-鿿]/.test(baseText)) {
+      ruby.replaceWith(document.createTextNode(baseText));
+    }
+  });
+  const div = document.createElement('div');
+  div.appendChild(template.content);
+  return div.innerHTML;
 }
 
 // Render quick definition meanings as HTML string
@@ -1163,34 +1226,30 @@ function analyzeText(text, context, mode) {
   let streamingText = '';
   let fastDictDefinitions = null;
 
-  // Render initial skeleton popup
+  // Render immediately — no waiting
   popup.innerHTML = renderResult(text, {}, mode, true);
   syncPinButton();
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
-  // Setup initial actions (save disabled until AI finishes; speak enabled immediately)
   const speakBtn = popup.querySelector('[data-action="speak"]');
   const saveBtn = popup.querySelector('[data-action="save"]');
   if (saveBtn) saveBtn.disabled = true;
 
-  // Enable speak immediately with original selected text — not blocked by AI
   currentSpeakText = text;
   currentSpeakLang = detectLanguage(text);
   if (speakBtn) {
     speakBtn.addEventListener('click', () => speakText(currentSpeakText, currentSpeakLang));
   }
 
-  // Fast furigana via kuromoji (Japanese text only)
   if (isJapaneseText(text)) {
     chrome.runtime.sendMessage({ type: 'FAST_FURIGANA', text }, (res) => {
-      if (res?.furigana && res.furigana.includes('<ruby>')) {
+      if (res?.furigana?.includes('<ruby>')) {
         updateFuriganaDisplay(res.furigana);
       }
     });
   }
 
-  // Quick definition via AI (word mode only, no context)
   if (mode === 'word') {
     const myRequestId = ++definitionRequestId;
     const cached = wordDefinitionCache.get(text);
@@ -1199,7 +1258,7 @@ function analyzeText(text, context, mode) {
       updateDictionarySection(cached);
     } else {
       chrome.runtime.sendMessage({ type: 'WORD_DEFINITION', text, nativeLanguage: interfaceLanguage }, (res) => {
-        if (myRequestId !== definitionRequestId) return; // stale — user moved to a new word
+        if (myRequestId !== definitionRequestId) return;
         if (res?.meanings?.length) {
           wordDefinitionCache.set(text, res.meanings);
           fastDictDefinitions = res.meanings;
@@ -1263,7 +1322,8 @@ function analyzeText(text, context, mode) {
         const grammarEl = popup.querySelector('.grammar-content');
         if (grammarEl && fullData.grammar) grammarEl.innerHTML = escapeHtml(fullData.grammar);
 
-        if (saveBtn) saveBtn.disabled = false;
+        const saveBtnEl = popup.querySelector('[data-action="save"]');
+        if (saveBtnEl) saveBtnEl.disabled = false;
 
         // Refine speak target with AI-cleaned text
         currentSpeakText = fullData.audio_text || text;
@@ -1272,9 +1332,8 @@ function analyzeText(text, context, mode) {
         syncPinButton();
         setupPopupActions(fullData);
 
-        // AI furigana is context-aware — apply it over the kuromoji preliminary version
         if (fullData.furigana?.includes('<ruby>')) {
-          updateFuriganaDisplay(fullData.furigana);
+          updateFuriganaDisplay(filterKanjiOnlyFurigana(fullData.furigana), true);
         }
         if (autoPlayAudio) {
           speakText(currentSpeakText, currentSpeakLang);
@@ -1338,7 +1397,10 @@ function renderLoading() {
 
   return `
     <div class="popup-header">
-      <span class="popup-title">${escapeHtml(analyzingStr)}</span>
+      <div class="header-left-group">
+        <img src="${chrome.runtime.getURL('icons/icon32.png')}" class="header-logo" alt="logo" />
+        <span class="popup-title">${escapeHtml(analyzingStr)}</span>
+      </div>
       <div class="header-actions">
         ${pinBtnHtml()}
         <button class="close-btn" data-action="close">
@@ -1363,7 +1425,10 @@ function renderError(message) {
 
   return `
     <div class="popup-header">
-      <span class="popup-title">${escapeHtml(errorTitleStr)}</span>
+      <div class="header-left-group">
+        <img src="${chrome.runtime.getURL('icons/icon32.png')}" class="header-logo" alt="logo" />
+        <span class="popup-title">${escapeHtml(errorTitleStr)}</span>
+      </div>
       <div class="header-actions">
         ${pinBtnHtml()}
         <button class="close-btn" data-action="close">
@@ -1426,7 +1491,10 @@ function renderResult(originalText, data, mode, isStreamingInit = false, dictDef
 
   return `
     <div class="popup-header">
-      <span class="popup-title">${escapeHtml(modeLabel)}</span>
+      <div class="header-left-group">
+        <img src="${chrome.runtime.getURL('icons/icon32.png')}" class="header-logo" alt="logo" />
+        <span class="popup-title">${escapeHtml(modeLabel)}</span>
+      </div>
       <div class="header-actions">
         ${pinBtnHtml()}
         <button class="close-btn" data-action="close">
