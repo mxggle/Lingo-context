@@ -243,10 +243,10 @@
         "message": "快速釋義"
     },
     "meaningLabel": {
-        "message": "含義與用法"
+        "message": "AI 詞義洞察"
     },
     "grammarLabel": {
-        "message": "文法與語境"
+        "message": "語境用法解讀"
     },
     "saveBtn": {
         "message": "儲存"

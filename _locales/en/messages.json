@@ -243,10 +243,10 @@
         "message": "Quick Definition"
     },
     "meaningLabel": {
-        "message": "MEANING & USAGE"
+        "message": "AI MEANING INSIGHT"
     },
     "grammarLabel": {
-        "message": "GRAMMAR & CONTEXT"
+        "message": "CONTEXTUAL USAGE"
     },
     "saveBtn": {
         "message": "Save"
