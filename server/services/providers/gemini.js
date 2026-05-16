@@ -79,8 +79,8 @@ function extractUsage(usageMeta, model) {
  * Returns { contentText, usage }
  */
 async function callAPI(systemInstruction, prompt, options = {}) {
-    // Try to get an explicit cache for this language
-    const cachedContentName = await getCacheName(options.targetLanguage).catch(err => {
+    // Try to get an explicit cache for this language (skipped for lightweight calls)
+    const cachedContentName = options.skipCache ? null : await getCacheName(options.targetLanguage).catch(err => {
         console.warn('[ExplicitCache] getCacheName failed in callAPI:', err.message);
         return null;
     });

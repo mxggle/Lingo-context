@@ -32,6 +32,7 @@ let interfaceLanguage = 'en';
 // Initialize the extension
 let isExtensionEnabled = true;
 let autoPlayAudio = false;
+const wordDefinitionCache = new Map(); // text → string[]
 
 async function init() {
   // Check for auth data from success page (for login flow)
@@ -430,6 +431,16 @@ function getPopupStyles() {
       color: #fcd34d;
       font-size: 13px;
       white-space: pre-line;
+    }
+
+    .dictionary-content {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #6ee7b7;
+    }
+
+    .dict-entry + .dict-entry {
+      margin-top: 3px;
     }
 
     .actions {
@@ -1082,6 +1093,31 @@ function showPopup(rect, text, mode) {
   });
 }
 
+// Detect if text contains Japanese characters
+function isJapaneseText(text) {
+  return /[　-鿿豈-﫿]/.test(text);
+}
+
+// Update the selected-text element with furigana HTML
+function updateFuriganaDisplay(html) {
+  const el = popup?.querySelector('.selected-text');
+  if (el) el.innerHTML = html;
+}
+
+// Render quick definition meanings as HTML string
+function renderDictHtml(meanings) {
+  if (!meanings?.length) return '';
+  return meanings.map((m, i) =>
+    `<div class="dict-entry">${i + 1}. ${escapeHtml(m)}</div>`
+  ).join('');
+}
+
+// Update the quick definition section content in the popup
+function updateDictionarySection(meanings) {
+  const el = popup?.querySelector('.dictionary-content');
+  if (el) el.innerHTML = renderDictHtml(meanings);
+}
+
 // Streaming helper: Extract partial string values from streaming JSON
 const STREAMING_KEYS = ['meaning', 'grammar', 'furigana', 'audio_text', 'language'];
 const STREAMING_REGEXES = {};
@@ -1120,6 +1156,7 @@ function updateStreamingResult(data) {
 function analyzeText(text, context, mode) {
   isLoading = true;
   let streamingText = '';
+  let fastDictDefinitions = null;
 
   // Render initial skeleton popup
   popup.innerHTML = renderResult(text, {}, mode, true);
@@ -1132,6 +1169,32 @@ function analyzeText(text, context, mode) {
   const saveBtn = popup.querySelector('[data-action="save"]');
   if (speakBtn) speakBtn.disabled = true;
   if (saveBtn) saveBtn.disabled = true;
+
+  // Fast furigana via kuromoji (Japanese text only)
+  if (isJapaneseText(text)) {
+    chrome.runtime.sendMessage({ type: 'FAST_FURIGANA', text }, (res) => {
+      if (res?.furigana && res.furigana.includes('<ruby>')) {
+        updateFuriganaDisplay(res.furigana);
+      }
+    });
+  }
+
+  // Quick definition via AI (word mode only, no context)
+  if (mode === 'word') {
+    const cached = wordDefinitionCache.get(text);
+    if (cached) {
+      fastDictDefinitions = cached;
+      updateDictionarySection(cached);
+    } else {
+      chrome.runtime.sendMessage({ type: 'WORD_DEFINITION', text }, (res) => {
+        if (res?.meanings?.length) {
+          wordDefinitionCache.set(text, res.meanings);
+          fastDictDefinitions = res.meanings;
+          updateDictionarySection(res.meanings);
+        }
+      });
+    }
+  }
 
   try {
     const port = chrome.runtime.connect({ name: 'analyze-stream' });
@@ -1178,9 +1241,25 @@ function analyzeText(text, context, mode) {
       isLoading = false;
       try {
         const fullData = JSON.parse(streamingText);
-        popup.innerHTML = renderResult(text, fullData, mode);
+
+        // Targeted updates — preserve .dictionary-content (Quick Definition) in place
+        // to avoid a visual jump when finishStream fires after WORD_DEFINITION has filled it
+        const meaningEl = popup.querySelector('.meaning-content');
+        if (meaningEl && fullData.meaning) meaningEl.innerHTML = escapeHtml(fullData.meaning);
+
+        const grammarEl = popup.querySelector('.grammar-content');
+        if (grammarEl && fullData.grammar) grammarEl.innerHTML = escapeHtml(fullData.grammar);
+
+        if (speakBtn) speakBtn.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+
         syncPinButton();
         setupPopupActions(fullData);
+
+        // AI furigana is context-aware — apply it over the kuromoji preliminary version
+        if (fullData.furigana?.includes('<ruby>')) {
+          updateFuriganaDisplay(fullData.furigana);
+        }
         if (autoPlayAudio) {
           const textToSpeak = fullData.audio_text || text;
           const lang = fullData.language || detectLanguage(textToSpeak);
@@ -1197,7 +1276,6 @@ function analyzeText(text, context, mode) {
 
         const partialData = extractStreamingJson(streamingText);
 
-        // Clean up visual loading state
         if (speakBtn) speakBtn.disabled = false;
         if (saveBtn) saveBtn.disabled = false;
 
@@ -1291,7 +1369,7 @@ function renderError(message) {
 }
 
 // Render analysis result
-function renderResult(originalText, data, mode, isStreamingInit = false) {
+function renderResult(originalText, data, mode, isStreamingInit = false, dictDefinitions = null) {
   // Use original text by default to preserve spacing/formatting
   let displayText = escapeHtml(originalText);
 
@@ -1320,6 +1398,18 @@ function renderResult(originalText, data, mode, isStreamingInit = false) {
     <div class="skeleton skeleton-line" style="width: 60%"></div>
   `;
 
+  const showDictSection = mode === 'word';
+  const dictHtml = showDictSection ? `
+      <div class="section">
+        <div class="section-label">Quick Definition</div>
+        <div class="section-content dictionary-content">${
+          isStreamingInit
+            ? (dictDefinitions ? renderDictHtml(dictDefinitions) : skeletonHtml)
+            : (dictDefinitions ? renderDictHtml(dictDefinitions) : '')
+        }</div>
+      </div>
+  ` : '';
+
   return `
     <div class="popup-header">
       <span class="popup-title">${escapeHtml(modeLabel)}</span>
@@ -1334,6 +1424,8 @@ function renderResult(originalText, data, mode, isStreamingInit = false) {
     </div>
     <div class="popup-content">
       <div class="selected-text">${displayText}</div>
+
+      ${dictHtml}
 
       <div class="section">
         <div class="section-label">${escapeHtml(meaningLabel)}</div>

@@ -142,6 +142,44 @@ chrome.runtime.onConnect.addListener((port) => {
 // Message listener for content script communication
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
+    if (message.type === 'FAST_FURIGANA') {
+        getConfig('BACKEND_URL').then(async (backendUrl) => {
+            if (!backendUrl) return sendResponse({ furigana: null });
+            try {
+                const res = await fetch(`${backendUrl}/furigana`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message.text }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                sendResponse({ furigana: data.furigana || null });
+            } catch {
+                sendResponse({ furigana: null });
+            }
+        });
+        return true;
+    }
+
+    if (message.type === 'WORD_DEFINITION') {
+        getConfig('BACKEND_URL').then(async (backendUrl) => {
+            if (!backendUrl) return sendResponse({ meanings: [] });
+            try {
+                const res = await fetch(`${backendUrl}/word-definition`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message.text }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                sendResponse({ meanings: data.meanings || [] });
+            } catch {
+                sendResponse({ meanings: [] });
+            }
+        });
+        return true;
+    }
+
     if (message.type === 'PLAY_TTS') {
         playFreeTTS(message.text, message.lang)
             .then(() => sendResponse({ success: true }))
