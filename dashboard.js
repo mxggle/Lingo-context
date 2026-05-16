@@ -110,6 +110,9 @@ async function init() {
             // Setup Language Preference
             setupLanguagePreference(data.user.target_language || 'English', backendUrl);
 
+            // Setup AI Provider Preference
+            setupAiProviderPreference(data.user.ai_provider || 'gemini', backendUrl);
+
             // Setup Interface Language Preference
             const interfaceLangSelect = document.getElementById('interfaceLanguage');
             if (interfaceLangSelect) {
@@ -169,6 +172,37 @@ function setupLanguagePreference(currentLanguage, backendUrl) {
             console.error('Failed to save language preference:', error);
             showToast(getTransl('toastTranslationLanguageError') || 'Failed to save language preference. Please try again.');
             languageSelect.value = originalLanguage; // Revert on failure
+        }
+    });
+}
+
+function setupAiProviderPreference(currentProvider, backendUrl) {
+    const providerSelect = document.getElementById('aiProvider');
+    if (!providerSelect) return;
+
+    providerSelect.value = currentProvider;
+    let originalProvider = currentProvider;
+
+    providerSelect.addEventListener('change', async () => {
+        const newProvider = providerSelect.value;
+        if (newProvider === originalProvider) return;
+
+        try {
+            const response = await fetch(`${backendUrl}/user/preferences`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aiProvider: newProvider }),
+                credentials: 'include'
+            });
+
+            if (!response.ok) throw new Error('Failed to save preference');
+
+            originalProvider = newProvider;
+            showToast(getTransl('toastAiProviderSaved') || 'AI provider saved!');
+        } catch (error) {
+            console.error('Failed to save AI provider preference:', error);
+            showToast(getTransl('toastAiProviderError') || 'Failed to save AI provider. Please try again.');
+            providerSelect.value = originalProvider;
         }
     });
 }

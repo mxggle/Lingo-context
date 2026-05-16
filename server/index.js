@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3303;
 
 app.set('trust proxy', 1); // Trust first proxy (Vercel)
 
@@ -40,7 +40,7 @@ app.get('/privacy', (req, res) => {
 // --- CORS ---
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-    : ['http://localhost:3000', 'https://lingo-context-api.vercel.app'];
+    : ['http://localhost:3303', 'https://lingo-context-api.vercel.app'];
 
 const ALLOWED_EXTENSION_IDS = process.env.CHROME_EXTENSION_IDS
     ? process.env.CHROME_EXTENSION_IDS.split(',').map(id => id.trim())
@@ -86,12 +86,16 @@ app.use((req, res, next) => {
 });
 
 // --- Session ---
+// Pass connection config directly so MySQLStore manages its own pool with reconnect logic.
+// Sharing the promise pool caused unhandled ECONNRESET rejections that crashed the process.
 const sessionStore = new MySQLStore({
+    ...db.dbConfig,
     clearExpired: true,
     checkExpirationInterval: 900000,
     expiration: 30 * 24 * 60 * 60 * 1000,
-    createDatabaseTable: true
-}, db.pool);
+    createDatabaseTable: true,
+    endConnectionOnClose: true
+});
 
 app.use(session({
     store: sessionStore,
@@ -152,5 +156,9 @@ const gracefulShutdown = async (signal) => {
 };
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled promise rejection (server kept running):', reason);
+});
 
 module.exports = app;

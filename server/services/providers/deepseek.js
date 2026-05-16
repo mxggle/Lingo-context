@@ -1,22 +1,34 @@
-// OpenRouter AI Provider — OpenAI-compatible API format
+// DeepSeek AI Provider — OpenAI-compatible API format
+// Docs: https://api-docs.deepseek.com/
+// Base URL: https://api.deepseek.com
+// Compatible with OpenAI ChatCompletions format.
+//
+// Available models (as of 2026-04):
+//   deepseek-v4-pro   — high performance, complex reasoning, coding, agent tasks
+//   deepseek-v4-flash — low latency, cost-effective, broad production use
+//   (Legacy: deepseek-chat, deepseek-reasoner — deprecated 2026-07-24)
 
 const { fetchWithRetry } = require('../../fetchWithRetry');
 const { logCacheMetrics } = require('../promptCacheManager');
 const { getOutputTokenLimit } = require('../outputTokenLimit');
 
-const PROVIDER_NAME = 'openrouter';
-const BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const PROVIDER_NAME = 'deepseek';
+const BASE_URL = 'https://api.deepseek.com/chat/completions';
+const DEFAULT_MODEL = 'deepseek-v4-flash';
 
 /**
- * Build the common request body for OpenRouter (OpenAI-compatible format).
+ * Build the common request body for DeepSeek (OpenAI-compatible format).
  */
 function buildRequestBody(systemInstruction, prompt, options = {}) {
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
-        throw Object.assign(new Error('Server configuration error: OpenRouter API Key missing'), { status: 500 });
+        throw Object.assign(
+            new Error('Server configuration error: DeepSeek API Key missing'),
+            { status: 500 }
+        );
     }
 
-    const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001';
+    const model = process.env.DEEPSEEK_MODEL || DEFAULT_MODEL;
 
     const body = {
         model,
@@ -26,7 +38,7 @@ function buildRequestBody(systemInstruction, prompt, options = {}) {
         ],
         temperature: 0.3,
         top_p: 0.95,
-        max_tokens: getOutputTokenLimit('OPENROUTER_MAX_TOKENS'),
+        max_tokens: getOutputTokenLimit('DEEPSEEK_MAX_TOKENS'),
     };
 
     const headers = {
@@ -38,7 +50,7 @@ function buildRequestBody(systemInstruction, prompt, options = {}) {
 }
 
 /**
- * Non-streaming call to OpenRouter API.
+ * Non-streaming call to DeepSeek API.
  * Returns { contentText, usage }
  */
 async function callAPI(systemInstruction, prompt, options = {}) {
@@ -52,9 +64,12 @@ async function callAPI(systemInstruction, prompt, options = {}) {
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        const errMsg = error.error?.message || 'OpenRouter API request failed';
+        const errMsg = error.error?.message || 'DeepSeek API request failed';
         if (response.status === 429) {
-            throw Object.assign(new Error('AI service is busy. Please try again in a few seconds.'), { status: 429 });
+            throw Object.assign(
+                new Error('AI service is busy. Please try again in a few seconds.'),
+                { status: 429 }
+            );
         }
         throw new Error(errMsg);
     }
@@ -69,7 +84,7 @@ async function callAPI(systemInstruction, prompt, options = {}) {
     const totalTokens = usage.total_tokens || (promptTokens + completionTokens);
 
     const contentText = data.choices?.[0]?.message?.content;
-    if (!contentText) throw new Error('No content in response');
+    if (!contentText) throw new Error('No content in DeepSeek response');
 
     return {
         contentText,
@@ -78,13 +93,15 @@ async function callAPI(systemInstruction, prompt, options = {}) {
 }
 
 /**
- * Streaming call to OpenRouter API.
+ * Streaming call to DeepSeek API.
  * Returns { response, model } — the raw fetch response for SSE processing.
  */
 async function callStreamAPI(systemInstruction, prompt, options = {}) {
     const { body, headers, model } = buildRequestBody(systemInstruction, prompt, options);
 
     body.stream = true;
+    // Request usage stats in the final stream chunk
+    body.stream_options = { include_usage: true };
 
     const response = await fetchWithRetry(BASE_URL, {
         method: 'POST',
@@ -95,20 +112,25 @@ async function callStreamAPI(systemInstruction, prompt, options = {}) {
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        const errMsg = error.error?.message || 'OpenRouter API request failed';
+        const errMsg = error.error?.message || 'DeepSeek API request failed';
+        console.error(`[DeepSeek] Stream request failed (HTTP ${response.status}):`, errMsg);
         if (response.status === 429) {
-            throw Object.assign(new Error('AI service is busy. Please try again in a few seconds.'), { status: 429 });
+            throw Object.assign(
+                new Error('AI service is busy. Please try again in a few seconds.'),
+                { status: 429 }
+            );
         }
         throw new Error(errMsg);
     }
 
+    console.log(`[DeepSeek] Stream response OK (HTTP ${response.status}) | model: ${model}`);
     return { response, model };
 }
 
 /**
- * Parse a single SSE data line from OpenRouter's streaming response.
+ * Parse a single SSE data line from DeepSeek's streaming response.
+ * DeepSeek uses the same SSE format as OpenAI ChatCompletions.
  * Returns { text, usage } or null if the line is not parseable.
- * Handles [DONE] marker and ignores comment lines (: OPENROUTER PROCESSING).
  */
 function parseSSEData(dataStr) {
     if (dataStr === '[DONE]') return null;

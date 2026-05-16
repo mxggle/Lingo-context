@@ -59,7 +59,7 @@ let configContent = fs.readFileSync(configPath, 'utf8');
 
 configContent = configContent
     .replace(/DEV_MODE:\s*true/, 'DEV_MODE: false')
-    .replace(/BACKEND_URL:\s*["']http:\/\/localhost:3000\/api["']/, '// BACKEND_URL: "http://localhost:3000/api"');
+    .replace(/BACKEND_URL:\s*["']http:\/\/localhost:3303\/api["']/, '// BACKEND_URL: "http://localhost:3303/api"');
 
 if (!configContent.includes('BACKEND_URL: "https://lingo-context-api.vercel.app/api"')) {
     configContent = configContent.replace(

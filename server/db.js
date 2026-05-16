@@ -44,7 +44,18 @@ const pool = mysql.createPool({
     ...dbConfig,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+    connectTimeout: 10000
+});
+
+pool.on('error', (err) => {
+    if (err.code === 'ECONNRESET' || err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.error('MySQL pool connection lost — will retry on next request:', err.code);
+    } else {
+        console.error('MySQL pool error:', err);
+    }
 });
 
 async function initializeDatabase() {
@@ -61,6 +72,11 @@ async function initializeDatabase() {
                 await connection.query(stmt);
             }
             console.log('Database schema initialized');
+
+            // Add ai_provider column if it doesn't exist (migration for existing DBs)
+            await connection.query(`
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(50) DEFAULT 'gemini'
+            `);
         } finally {
             connection.release();
         }
@@ -83,5 +99,6 @@ const query = async (text, params) => {
 module.exports = {
     pool,
     query,
-    initializeDatabase
+    initializeDatabase,
+    dbConfig
 };

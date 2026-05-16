@@ -62,7 +62,7 @@ Create a `.env` file in the `server/` directory:
 # server/.env
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.0-flash-lite
-PORT=3000
+PORT=3303
 DATABASE_URL=mysql://user:password@localhost:3306/LingoContext
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret

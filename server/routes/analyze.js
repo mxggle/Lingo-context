@@ -20,9 +20,10 @@ router.post('/', async (req, res) => {
 
     // Use user's preferred target language if not specified in request
     const targetLanguage = req.body.targetLanguage || (req.user ? req.user.target_language : null) || 'English';
+    const aiProvider = req.user?.ai_provider || undefined;
 
     try {
-        const { result, usage } = await analyzeText({ text, context, targetLanguage });
+        const { result, usage } = await analyzeText({ text, context, targetLanguage, aiProvider });
 
         // Log usage to DB (non-blocking — don't fail request if logging fails)
         // Only log if user is authenticated

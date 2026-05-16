@@ -4,7 +4,7 @@
 // Inline config (content scripts can't use ES modules)
 const CONFIG = {
   WORD_THRESHOLD: 3,
-  CONTEXT_LENGTH: 150
+  CONTEXT_SENTENCE_MAX: 320
 };
 
 // State management
@@ -389,6 +389,7 @@ function getPopupStyles() {
     .selected-text ruby {
       display: ruby;
       ruby-position: over;
+      ruby-align: center;
     }
 
     .selected-text rt {
@@ -428,6 +429,7 @@ function getPopupStyles() {
     .grammar-content {
       color: #fcd34d;
       font-size: 13px;
+      white-space: pre-line;
     }
 
     .actions {
@@ -836,6 +838,99 @@ function handleSelection(e) {
   showTriggerIcon(rect, text, mode);
 }
 
+function normalizeContextText(text) {
+  return (text || '').replace(/\s+/g, ' ').trim();
+}
+
+function splitIntoSentences(text) {
+  const sentences = [];
+  let start = 0;
+  const sentenceEndPattern = /[。.!?！？]/;
+  const closingPunctuationPattern = /["'”’」』）)\]｝】》]/;
+
+  for (let i = 0; i < text.length; i++) {
+    if (!sentenceEndPattern.test(text[i])) continue;
+
+    let end = i + 1;
+    while (end < text.length && closingPunctuationPattern.test(text[end])) {
+      end++;
+    }
+
+    const sentenceText = text.slice(start, end);
+    if (normalizeContextText(sentenceText)) {
+      sentences.push({ start, end, text: sentenceText });
+    }
+
+    start = end;
+    while (start < text.length && /\s/.test(text[start])) {
+      start++;
+    }
+    i = start - 1;
+  }
+
+  if (start < text.length) {
+    const sentenceText = text.slice(start);
+    if (normalizeContextText(sentenceText)) {
+      sentences.push({ start, end: text.length, text: sentenceText });
+    }
+  }
+
+  return sentences;
+}
+
+function isSentenceSelection(selectedText) {
+  const text = normalizeContextText(selectedText);
+  if (!text) return false;
+  if (/[。.!?！？]["'”’」』）)\]｝】》]*$/.test(text)) return true;
+  return text.split(/\s+/).filter(Boolean).length > CONFIG.WORD_THRESHOLD;
+}
+
+function trimSentenceAroundSelection(sentenceText, selectedText) {
+  const normalizedSentence = normalizeContextText(sentenceText);
+  if (normalizedSentence.length <= CONFIG.CONTEXT_SENTENCE_MAX) {
+    return normalizedSentence;
+  }
+
+  const selectedIndex = normalizedSentence.indexOf(normalizeContextText(selectedText));
+  if (selectedIndex === -1) {
+    return normalizedSentence.slice(0, CONFIG.CONTEXT_SENTENCE_MAX).trim();
+  }
+
+  const selectedLength = normalizeContextText(selectedText).length;
+  const spareChars = Math.max(CONFIG.CONTEXT_SENTENCE_MAX - selectedLength, 0);
+  const beforeChars = Math.floor(spareChars / 2);
+  const start = Math.max(0, selectedIndex - beforeChars);
+  const end = Math.min(normalizedSentence.length, start + CONFIG.CONTEXT_SENTENCE_MAX);
+  const trimmed = normalizedSentence.slice(start, end).trim();
+
+  return `${start > 0 ? '...' : ''}${trimmed}${end < normalizedSentence.length ? '...' : ''}`;
+}
+
+function getSelectedTextContext(fullText, selectedText) {
+  const index = fullText.indexOf(selectedText);
+  if (index === -1) {
+    return normalizeContextText(selectedText);
+  }
+
+  const selectionEnd = index + selectedText.length;
+  const sentences = splitIntoSentences(fullText);
+  const selectedSentenceIndex = sentences.findIndex(sentence =>
+    sentence.start <= index && sentence.end >= selectionEnd
+  );
+
+  if (selectedSentenceIndex === -1) {
+    return normalizeContextText(selectedText);
+  }
+
+  if (!isSentenceSelection(selectedText)) {
+    return trimSentenceAroundSelection(sentences[selectedSentenceIndex].text, selectedText);
+  }
+
+  const start = Math.max(0, selectedSentenceIndex - 1);
+  const end = Math.min(sentences.length, selectedSentenceIndex + 2);
+  return normalizeContextText(sentences.slice(start, end).map(sentence => sentence.text).join(' '));
+}
+
 // Get surrounding context for better analysis
 function getSurroundingContext(selection) {
   try {
@@ -850,31 +945,21 @@ function getSurroundingContext(selection) {
 
     let contextParts = [];
 
-    // Add page context (title + URL + hostname)
+    // Add only the page title as page-level context.
     const pageTitle = document.title?.trim();
-    const pageUrl = window.location.hostname;
-    const pageMetaDesc = document.querySelector('meta[name="description"]')?.content;
 
     if (pageTitle) {
       contextParts.push(`[${getPageContextLabel('pageTitleLabel', 'Page Title')}: ${pageTitle}]`);
     }
-    if (pageUrl) {
-      contextParts.push(`[${getPageContextLabel('websiteLabel', 'Website')}: ${pageUrl}]`);
-    }
-    if (pageMetaDesc) {
-      contextParts.push(`[${getPageContextLabel('descriptionLabel', 'Description')}: ${pageMetaDesc.slice(0, 200)}]`);
-    }
 
-    // Add surrounding text context
+    // Add a short selection-level context: word/term = current sentence,
+    // sentence/passage = previous + selected + next sentence.
     if (parent) {
       const fullText = parent.textContent || '';
       const selectedText = selection.toString();
-      const index = fullText.indexOf(selectedText);
-
-      if (index !== -1) {
-        const start = Math.max(0, index - CONFIG.CONTEXT_LENGTH);
-        const end = Math.min(fullText.length, index + selectedText.length + CONFIG.CONTEXT_LENGTH);
-        contextParts.push(fullText.substring(start, end));
+      const selectedTextContext = getSelectedTextContext(fullText, selectedText);
+      if (selectedTextContext) {
+        contextParts.push(selectedTextContext);
       }
     }
 
@@ -1102,7 +1187,14 @@ function analyzeText(text, context, mode) {
           chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
         }
       } catch (e) {
-        // Fallback if final JSON is malformed
+        // Fallback if final JSON is malformed or empty
+        if (!streamingText.trim()) {
+          popup.innerHTML = renderError(getTransl('streamEmptyError') || 'No response from AI service. Please try again.');
+          syncPinButton();
+          setupErrorActions();
+          return;
+        }
+
         const partialData = extractStreamingJson(streamingText);
 
         // Clean up visual loading state

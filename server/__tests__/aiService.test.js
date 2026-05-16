@@ -7,7 +7,8 @@ jest.mock('../services/providers', () => ({
 
 jest.mock('../prompts', () => ({
     getSystemInstruction: jest.fn().mockReturnValue('mock system instruction'),
-    generatePrompt: jest.fn().mockReturnValue('mock prompt')
+    generatePrompt: jest.fn().mockReturnValue('mock prompt'),
+    normalizePromptContext: jest.fn(context => (context || '').replace(/\s+/g, ' ').trim())
 }));
 
 describe('aiService.js', () => {

@@ -37,9 +37,18 @@ function normalizeTargetLanguage(targetLanguage) {
 }
 
 function getTargetFieldsText(result) {
+    const wordAnalysisText = Array.isArray(result?.explanation?.word_analysis)
+        ? result.explanation.word_analysis
+            .map(item => [item?.role, item?.meaning].filter(Boolean).join(' '))
+            .join(' ')
+        : '';
+
     return [
         result?.meaning,
         result?.grammar,
+        result?.translation,
+        result?.explanation?.contextual_note,
+        wordAnalysisText,
         result?.nuance_note
     ].filter(Boolean).join(' ');
 }

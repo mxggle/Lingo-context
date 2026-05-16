@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(255),
   avatar_url TEXT,
   target_language VARCHAR(50) DEFAULT 'English',
+  ai_provider VARCHAR(50) DEFAULT 'gemini',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   last_login DATETIME DEFAULT CURRENT_TIMESTAMP
 );
