@@ -38,7 +38,7 @@ function buildRequestBody(systemInstruction, prompt, options = {}) {
         ],
         temperature: 0.3,
         top_p: 0.95,
-        max_tokens: getOutputTokenLimit('DEEPSEEK_MAX_TOKENS'),
+        max_tokens: options.maxOutputTokens || getOutputTokenLimit('DEEPSEEK_MAX_TOKENS'),
     };
 
     const headers = {

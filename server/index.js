@@ -22,6 +22,7 @@ const userRoutes = require('./routes/user');
 const furiganaRoutes = require('./routes/furigana');
 const dictionaryRoutes = require('./routes/dictionary');
 const wordDefinitionRoutes = require('./routes/wordDefinition');
+const ttsRoutes = require('./routes/tts');
 
 // --- Fail fast if SESSION_SECRET is not set in production ---
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -129,6 +130,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/furigana', furiganaRoutes);
 app.use('/api/dictionary', dictionaryRoutes);
 app.use('/api/word-definition', wordDefinitionRoutes);
+app.use('/api/tts', ttsRoutes);
 
 // Note: /api/stats was previously at /api/stats, now at /api/user/stats
 // Add a redirect for backward compatibility

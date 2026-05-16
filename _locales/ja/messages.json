@@ -239,6 +239,9 @@
     "phraseAnalysisLabel": {
         "message": "フレーズ分析"
     },
+    "quickDefinitionLabel": {
+        "message": "クイック定義"
+    },
     "meaningLabel": {
         "message": "意味と使い方"
     },

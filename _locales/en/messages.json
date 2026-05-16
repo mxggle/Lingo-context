@@ -239,6 +239,9 @@
     "phraseAnalysisLabel": {
         "message": "Phrase Analysis"
     },
+    "quickDefinitionLabel": {
+        "message": "Quick Definition"
+    },
     "meaningLabel": {
         "message": "MEANING & USAGE"
     },

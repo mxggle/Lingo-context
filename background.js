@@ -168,13 +168,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const res = await fetch(`${backendUrl}/word-definition`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: message.text }),
+                    body: JSON.stringify({ text: message.text, nativeLanguage: message.nativeLanguage }),
                     credentials: 'include'
                 });
                 const data = await res.json();
                 sendResponse({ meanings: data.meanings || [] });
             } catch {
                 sendResponse({ meanings: [] });
+            }
+        });
+        return true;
+    }
+
+    if (message.type === 'EDGE_TTS') {
+        getConfig('BACKEND_URL').then(async (backendUrl) => {
+            if (!backendUrl) return sendResponse({ error: 'No backend URL' });
+            try {
+                const res = await fetch(`${backendUrl}/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message.text, lang: message.lang }),
+                    credentials: 'include'
+                });
+                if (!res.ok) throw new Error(`${res.status}`);
+                const buf = await res.arrayBuffer();
+                const uint8 = new Uint8Array(buf);
+                let b64 = '';
+                for (let i = 0; i < uint8.length; i += 8192) {
+                    b64 += String.fromCharCode(...uint8.subarray(i, i + 8192));
+                }
+                sendResponse({ audio: btoa(b64) });
+            } catch (err) {
+                sendResponse({ error: err.message });
             }
         });
         return true;

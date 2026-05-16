@@ -9,7 +9,8 @@
         "storage"
     ],
     "host_permissions": [
-        "https://lingo-context-api.vercel.app/*"
+        "https://lingo-context-api.vercel.app/*",
+        "http://localhost:*/*"
     ],
     "background": {
         "service_worker": "background.js",

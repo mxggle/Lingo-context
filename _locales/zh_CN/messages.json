@@ -239,6 +239,9 @@
     "phraseAnalysisLabel": {
         "message": "短语分析"
     },
+    "quickDefinitionLabel": {
+        "message": "快速释义"
+    },
     "meaningLabel": {
         "message": "含义与用法"
     },

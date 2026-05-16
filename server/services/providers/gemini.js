@@ -42,7 +42,8 @@ function buildRequest(systemInstruction, prompt, options = {}) {
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: getOutputTokenLimit('GEMINI_MAX_OUTPUT_TOKENS'),
+            maxOutputTokens: options.maxOutputTokens || getOutputTokenLimit('GEMINI_MAX_OUTPUT_TOKENS'),
+            ...(options.noThinking && { thinkingConfig: { thinkingBudget: 0 } }),
         }
     };
 
@@ -87,7 +88,7 @@ async function callAPI(systemInstruction, prompt, options = {}) {
     if (cachedContentName) {
         console.log('[ExplicitCache] Using cache:', cachedContentName);
     }
-    const { url, body, model } = buildRequest(systemInstruction, prompt, { cachedContentName });
+    const { url, body, model } = buildRequest(systemInstruction, prompt, { ...options, cachedContentName });
 
     const response = await fetchWithRetry(url, {
         method: 'POST',

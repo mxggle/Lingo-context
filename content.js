@@ -12,6 +12,7 @@ let popup = null;
 let triggerIcon = null;
 let shadowRoot = null;
 let isLoading = false;
+let definitionRequestId = 0;
 let currentSelection = null;
 let activeSelection = null;
 let isDragging = false;
@@ -33,6 +34,10 @@ let interfaceLanguage = 'en';
 let isExtensionEnabled = true;
 let autoPlayAudio = false;
 const wordDefinitionCache = new Map(); // text → string[]
+
+// Current speak state (updated immediately on selection, refined when AI finishes)
+let currentSpeakText = '';
+let currentSpeakLang = 'en';
 
 async function init() {
   // Check for auth data from success page (for login flow)
@@ -1164,11 +1169,17 @@ function analyzeText(text, context, mode) {
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
-  // Setup initial actions (disabled save/listen while streaming)
+  // Setup initial actions (save disabled until AI finishes; speak enabled immediately)
   const speakBtn = popup.querySelector('[data-action="speak"]');
   const saveBtn = popup.querySelector('[data-action="save"]');
-  if (speakBtn) speakBtn.disabled = true;
   if (saveBtn) saveBtn.disabled = true;
+
+  // Enable speak immediately with original selected text — not blocked by AI
+  currentSpeakText = text;
+  currentSpeakLang = detectLanguage(text);
+  if (speakBtn) {
+    speakBtn.addEventListener('click', () => speakText(currentSpeakText, currentSpeakLang));
+  }
 
   // Fast furigana via kuromoji (Japanese text only)
   if (isJapaneseText(text)) {
@@ -1181,12 +1192,14 @@ function analyzeText(text, context, mode) {
 
   // Quick definition via AI (word mode only, no context)
   if (mode === 'word') {
+    const myRequestId = ++definitionRequestId;
     const cached = wordDefinitionCache.get(text);
     if (cached) {
       fastDictDefinitions = cached;
       updateDictionarySection(cached);
     } else {
-      chrome.runtime.sendMessage({ type: 'WORD_DEFINITION', text }, (res) => {
+      chrome.runtime.sendMessage({ type: 'WORD_DEFINITION', text, nativeLanguage: interfaceLanguage }, (res) => {
+        if (myRequestId !== definitionRequestId) return; // stale — user moved to a new word
         if (res?.meanings?.length) {
           wordDefinitionCache.set(text, res.meanings);
           fastDictDefinitions = res.meanings;
@@ -1250,8 +1263,11 @@ function analyzeText(text, context, mode) {
         const grammarEl = popup.querySelector('.grammar-content');
         if (grammarEl && fullData.grammar) grammarEl.innerHTML = escapeHtml(fullData.grammar);
 
-        if (speakBtn) speakBtn.disabled = false;
         if (saveBtn) saveBtn.disabled = false;
+
+        // Refine speak target with AI-cleaned text
+        currentSpeakText = fullData.audio_text || text;
+        currentSpeakLang = fullData.language || detectLanguage(currentSpeakText);
 
         syncPinButton();
         setupPopupActions(fullData);
@@ -1261,9 +1277,7 @@ function analyzeText(text, context, mode) {
           updateFuriganaDisplay(fullData.furigana);
         }
         if (autoPlayAudio) {
-          const textToSpeak = fullData.audio_text || text;
-          const lang = fullData.language || detectLanguage(textToSpeak);
-          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+          speakText(currentSpeakText, currentSpeakLang);
         }
       } catch (e) {
         // Fallback if final JSON is malformed or empty
@@ -1276,15 +1290,15 @@ function analyzeText(text, context, mode) {
 
         const partialData = extractStreamingJson(streamingText);
 
-        if (speakBtn) speakBtn.disabled = false;
         if (saveBtn) saveBtn.disabled = false;
+
+        currentSpeakText = partialData.audio_text || text;
+        currentSpeakLang = partialData.language || detectLanguage(currentSpeakText);
 
         syncPinButton();
         setupPopupActions(partialData);
         if (autoPlayAudio) {
-          const textToSpeak = partialData.audio_text || text;
-          const lang = partialData.language || detectLanguage(textToSpeak);
-          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+          speakText(currentSpeakText, currentSpeakLang);
         }
       }
     }
@@ -1401,7 +1415,7 @@ function renderResult(originalText, data, mode, isStreamingInit = false, dictDef
   const showDictSection = mode === 'word';
   const dictHtml = showDictSection ? `
       <div class="section">
-        <div class="section-label">Quick Definition</div>
+        <div class="section-label">${getTransl('quickDefinitionLabel') || 'Quick Definition'}</div>
         <div class="section-content dictionary-content">${
           isStreamingInit
             ? (dictDefinitions ? renderDictHtml(dictDefinitions) : skeletonHtml)
@@ -1485,17 +1499,6 @@ function setupPopupActions(data) {
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
-  popup.querySelector('[data-action="speak"]')?.addEventListener('click', () => {
-    const textToSpeak = data.audio_text || activeSelection?.text;
-    const lang = data.language || detectLanguage(textToSpeak);
-
-    chrome.runtime.sendMessage({
-      type: 'PLAY_TTS',
-      text: textToSpeak,
-      lang
-    });
-  });
-
   popup.querySelector('[data-action="save"]')?.addEventListener('click', () => {
     saveWord(activeSelection?.text, data);
   });
@@ -1526,6 +1529,60 @@ function detectLanguage(text) {
   }
 
   return 'other';
+}
+
+// Speak via Edge TTS (routed through background.js), fall back to Web Speech API
+function speakText(text, lang) {
+  if (!text) return;
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  chrome.runtime.sendMessage({ type: 'EDGE_TTS', text, lang }, (response) => {
+    if (chrome.runtime.lastError || !response?.audio) {
+      speakWithWebSpeech(text, lang);
+      return;
+    }
+    try {
+      const binary = atob(response.audio);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onerror = () => { URL.revokeObjectURL(url); speakWithWebSpeech(text, lang); };
+      audio.play().catch(() => { URL.revokeObjectURL(url); speakWithWebSpeech(text, lang); });
+    } catch (_) {
+      speakWithWebSpeech(text, lang);
+    }
+  });
+}
+
+function speakWithWebSpeech(text, lang) {
+  if (!window.speechSynthesis) return;
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  const langMap = {
+    'ja': 'ja-JP', 'en': 'en-US', 'zh': 'zh-CN', 'ko': 'ko-KR',
+    'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES', 'pt': 'pt-BR',
+    'ru': 'ru-RU', 'ar': 'ar-SA', 'it': 'it-IT', 'nl': 'nl-NL',
+    'tr': 'tr-TR', 'pl': 'pl-PL', 'vi': 'vi-VN', 'th': 'th-TH'
+  };
+  const bcp47 = langMap[lang] || 'en-US';
+  const langPrefix = bcp47.split('-')[0];
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = bcp47;
+  utterance.rate = 0.9;
+  utterance.pitch = 1.0;
+  const go = () => {
+    const voices = synth.getVoices();
+    const voice = voices.find(v => v.lang.startsWith(langPrefix) && v.name.includes('Google') && !v.localService)
+      || voices.find(v => v.lang.startsWith(langPrefix) && !v.localService)
+      || voices.find(v => v.lang.startsWith(langPrefix));
+    if (voice) utterance.voice = voice;
+    synth.speak(utterance);
+  };
+  if (synth.getVoices().length > 0) go();
+  else synth.addEventListener('voiceschanged', go, { once: true });
 }
 
 // Save word to backend
