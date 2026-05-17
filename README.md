@@ -1,8 +1,12 @@
 # LingoContext 🌐
 
-**LingoContext** is a powerful Chrome Extension designed for language learners (English/Japanese). It provides instant, context-aware definitions, grammar explanations, and pronunciation guides using Google's **Gemini AI** and browser-native Text-to-Speech.
+<p align="center">
+  <img src="icons/icon.png" alt="LingoContext logo" width="128" height="128" />
+</p>
 
-It comes with a full-featured **Dashboard** to track your vocabulary, view usage statistics, and manage your learning history.
+**LingoContext** is a Chrome extension for language learners that turns selected text on any webpage into a context-aware study card: translation, adaptive explanation, grammar notes, pronunciation, and vocabulary capture in one flow.
+
+It combines AI analysis, fast local Japanese helpers, and a review dashboard so learners can move from “what does this mean?” to “why does it mean that here?” without leaving the page.
 
 ![Version](https://img.shields.io/badge/version-1.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -11,41 +15,49 @@ It comes with a full-featured **Dashboard** to track your vocabulary, view usage
 
 ## ✨ Features
 
-- **📖 Context-Aware Analysis**: Select text to get definitions, translations, and grammar breakdowns based on the surrounding sentence context.
-- **🤖 Gemini AI Powered**: utilizes `gemini-2.0-flash-lite` for fast and accurate linguistic analysis.
-- **🔊 Native High-Quality TTS**: Uses the browser's built-in text-to-speech engine.
-- **🎌 Furigana Support**: automatically generates Ruby text (furigana) for Japanese Kanji.
-- **📊 Vocabulary Dashboard**: A dedicated interface to review saved words, search by language, and manage your collection.
-- **� Usage Tracking**: Monitors your API usage and token costs.
-- **🔐 Google Authentication**: Secure login to sync your data across devices.
-- **🐳 Docker Ready**: Full backend stack containerized for easy deployment.
-<img width="708" height="411" alt="image" src="https://github.com/user-attachments/assets/3f09385c-e3e7-4797-a26f-5e680fc08500" />
-<img width="2148" height="1548" alt="CleanShot 2026-01-25 at 14 10 00@2x" src="https://github.com/user-attachments/assets/db53c6dd-8116-4bcf-beb2-9a9383c52659" />
+- **📖 Context-aware analysis**: Understands selected text using the surrounding sentence and page context instead of translating in isolation.
+- **🧠 Adaptive explanations**: Produces richer grammar and word-by-word explanations for shorter selections, while handling longer passages more naturally.
+- **⚡ Streaming responses**: Uses server-sent events for responsive AI analysis flows.
+- **🤖 Multi-provider AI**: Supports user-selectable **Gemini** and **DeepSeek** analysis providers, with a provider-agnostic backend architecture.
+- **🔍 Quick definitions**: Fetches lightweight definitions for selected terms before the full analysis finishes.
+- **🎌 Japanese study support**: Generates local furigana for Japanese text and filters ruby annotations down to Kanji where appropriate.
+- **🔊 Better pronunciation**: Uses Edge TTS for high-quality audio with browser TTS fallback, plus optional auto-play.
+- **🧠 Smart caching**: Caches AI analysis, quick definitions, and TTS audio to reduce repeated latency and token usage.
+- **🪟 Refined in-page popup**: Draggable, pinnable, resizable popup UI with contained scrolling and updated cursor-trigger animations.
+- **📊 Vocabulary dashboard**: Review saved words, search your collection, inspect usage, and manage preferences.
+- **🌍 Internationalization**: Ships with English, Japanese, Simplified Chinese, and Traditional Chinese locales.
+- **🔐 Google authentication**: Syncs user data and preferences across sessions.
+- **🐳 Docker-ready backend**: Includes a containerized Node.js + MySQL stack for local or self-hosted deployment.
 
+<img width="708" height="411" alt="LingoContext popup" src="https://github.com/user-attachments/assets/3f09385c-e3e7-4797-a26f-5e680fc08500" />
+<img width="2148" height="1548" alt="LingoContext dashboard" src="https://github.com/user-attachments/assets/db53c6dd-8116-4bcf-beb2-9a9383c52659" />
 
 ## 🛠️ Technology Stack
 
-- **Extension**: Vanilla JavaScript (ES Module), Chrome Extension MV3
-- **Styling**: TailwindCSS
-- **Backend**: Node.js, Express.js
-- **Database**: MySQL (via Docker)
-- **AI**: Google Gemini API
+- **Extension**: Vanilla JavaScript, Chrome Extension Manifest V3
+- **Styling**: Tailwind CSS
+- **Backend**: Node.js, Express 5, Server-Sent Events
+- **Database**: MySQL
+- **AI**: Gemini and DeepSeek, behind a pluggable provider layer
+- **Speech**: Edge TTS with Web Speech API fallback
+- **Japanese processing**: `kuromoji`
+- **Deployment**: Docker Compose and Vercel-compatible server configuration
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v18+)
-- Docker & Docker Compose (for backend)
-- Google Cloud Console Project (for OAuth)
-- Gemini API Key
+- Node.js 18+
+- Docker and Docker Compose
+- Google Cloud Console project for OAuth
+- At least one AI provider key:
+  - `GEMINI_API_KEY`
+  - or `DEEPSEEK_API_KEY`
 
 ### 1. Installation
 
-Clone the repository and install dependencies:
-
 ```bash
-# Install root dependencies (for Tailwind and Scripts)
+# Install root dependencies
 npm install
 
 # Install server dependencies
@@ -54,132 +66,133 @@ cd server && npm install && cd ..
 
 ### 2. Configuration
 
-#### Server (.env)
+#### Server (`server/.env`)
 
-Create a `.env` file in the `server/` directory:
+Create `server/.env` from the example file and fill in the values you need:
 
 ```env
-# server/.env
+AI_PROVIDER=gemini
+AI_MAX_OUTPUT_TOKENS=2048
+
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.0-flash-lite
+GEMINI_MODEL=gemini-2.5-flash
+
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_MODEL=deepseek-v4-flash
+
 PORT=3303
-DATABASE_URL=mysql://user:password@localhost:3306/LingoContext
+DATABASE_URL=mysql://user:password@mysql:3306/LingoContext
+
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 SESSION_SECRET=your_random_session_secret
 ```
 
-*Note: For Docker, the `DATABASE_URL` host is automatically handled, but you need to pass these variables in `docker-compose.yml` or a root `.env`.*
+Optional provider-related settings such as OpenRouter, Codex-compatible routing, Gemini explicit cache settings, CORS origins, and extension IDs are documented in `server/.env.example`.
 
-#### Extension (config.js)
+#### Extension (`config.js`)
 
-The extension ships with the production backend URL by default. For local development, override `BACKEND_URL` in `chrome.storage.local` or temporarily update `config.js` to your local API endpoint.
+The extension uses `CONFIG.BACKEND_URL` as its API endpoint. For local development, point it at:
 
-### 3. Running Locally
+```js
+http://localhost:3303/api
+```
 
-#### Option A: Full Stack with Docker (Recommended)
+For production packaging, restore the hosted backend URL before building the release bundle.
 
-This starts both the MySQL database and the Node.js server.
+### 3. Run Locally
+
+#### Option A: Full stack with Docker
 
 ```bash
 docker-compose up --build
 ```
 
-#### Option B: Local Development (Manual)
+#### Option B: Manual development
 
-1. **Start Database**: Ensure you have a MySQL instance running or use `docker-compose up mysql -d`.
-2. **Start Server**:
+1. Start MySQL locally, or run only the MySQL service:
+   ```bash
+   docker-compose up mysql -d
+   ```
+2. Start the backend:
    ```bash
    cd server
    node index.js
    ```
-3. **Build CSS**:
+3. Build extension styles:
    ```bash
    npm run build:css
-   # or watch for changes
+   # or
    npm run watch:css
    ```
 
-### 4. Load Extension in Chrome
+### 4. Load the Extension in Chrome
 
-1. Open `chrome://extensions/`.
-2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select the project root folder (`word-cursor` / `lingo-context`).
+1. Open `chrome://extensions/`
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the project root folder
+
+## 🖥️ Usage
+
+1. **Sign in** from the popup with Google.
+2. **Select text** on any webpage to reveal the custom cursor trigger.
+3. **Analyze** the selection to receive translation, grammar/explanation, furigana when relevant, and quick definitions.
+4. **Listen** with the speaker control, optionally using auto-play pronunciation.
+5. **Save** useful terms to your vocabulary list.
+6. **Review** them later in the dashboard, where you can also change target language and AI provider preferences.
 
 ## 📦 Packaging for Release
 
-### Option 1: Quick Build
+### Quick build
 
 ```bash
 npm run package
 ```
 
-This creates `extension.zip` in the root directory.
+Creates `extension.zip` in the repository root.
 
-### Option 2: Production Build
+### Production build
 
 ```bash
 npm run build:prod
 ```
 
-This creates `lingocontext-production.zip` with all production configurations applied.
+Creates `lingocontext-production.zip` with production configuration applied.
 
 ## 🌐 Chrome Web Store Deployment
 
-### Pre-submission Checklist
+### Pre-submission checklist
 
-1. **Update Version**: Bump version in `manifest.json` and `package.json`
-2. **Test the Extension**:
-   - Load unpacked extension in Chrome
-   - Test all features: text selection, popup, dashboard, login
-3. **Privacy Policy**: Required for store submission
-   - Host at: `https://your-domain.com/privacy.html`
-   - Include: data collection, storage, third-party services
-4. **Screenshots**: Prepare 1-4 screenshots (1280x800 or 640x400)
-5. **Store Listing**:
-   - Short description: Max 132 characters
-   - Long description: Max 10000 characters
+1. Bump the version in `manifest.json` and `package.json`
+2. Test selection flow, popup behavior, dashboard, sign-in, TTS, and provider switching
+3. Prepare a privacy policy page
+4. Prepare store screenshots
+5. Fill in the listing copy and metadata
 
-### Publishing Steps
+### Extension permissions
 
-1. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-2. Create new item and upload the `.zip` file
-3. Fill in store listing details
-4. Submit for review
-
-### Extension Permissions
-
-- `storage`: For saving user preferences
-- `tts`: For text-to-speech functionality
-- Host access to the production backend API
-
-## 🖥️ Usage
-
-1. **Login**: Click the extension icon and sign in with Google.
-2. **Analyze**: Select text on any webpage. A popup will appear with:
-   - Meaning & Translation
-   - Grammar Breakdown
-   - Furigana (for Japanese)
-3. **Listen**: Click the Speaker icon 🔊 for pronunciation.
-4. **Save**: Click the Save icon 💾 to store it in your dashboard.
-5. **Review**: Right-click the extension icon and select "Options", or open the Dashboard from the popup to view your saved vocabulary.
+- `storage`: saves user preferences
+- `tts`: enables browser text-to-speech fallback
+- Host access to the configured backend API
 
 ## 📂 Project Structure
 
-```
+```text
 .
-├── manifest.json       # Chrome Extension Manifest
-├── content.js          # Main content script (UI injection)
-├── background.js       # Background service worker
-├── dashboard.html/js   # Vocabulary Manager Dashboard
-├── popup.html/js       # Login & Quick Actions
-├── styles.css          # Generated Tailwind CSS
-├── server/             # Express Backend
-│   ├── index.js        # API Routes
-│   ├── db.js           # Database Connection
-│   └── schema.sql      # Database Schema
-└── docker-compose.yml  # Container Orchestration
+├── manifest.json              # Chrome extension manifest
+├── content.js                 # In-page selection flow and popup UI
+├── background.js              # Background worker, streaming bridge, TTS routing
+├── popup.html / popup.js      # Login and quick actions
+├── dashboard.html / dashboard.js
+│                              # Vocabulary dashboard and user preferences
+├── icons/                     # Extension icons and cursor assets
+├── _locales/                  # Translation files
+├── server/                    # Express backend
+│   ├── routes/                # Analyze, TTS, furigana, dictionary, auth routes
+│   ├── services/              # AI, caching, TTS, furigana, normalization logic
+│   └── schema.sql             # Database schema
+└── docker-compose.yml         # Local stack orchestration
 ```
 
 ## 📄 License
