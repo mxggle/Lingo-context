@@ -9,7 +9,8 @@ jest.mock('mysql2/promise', () => {
     };
     const mPool = {
         getConnection: jest.fn().mockResolvedValue(mConnection),
-        query: jest.fn()
+        query: jest.fn(),
+        on: jest.fn()
     };
     return {
         createPool: jest.fn().mockReturnValue(mPool)
@@ -101,9 +102,10 @@ describe('db.js', () => {
             const connection = await db.pool.getConnection();
 
             expect(fs.readFileSync).toHaveBeenCalledWith(expect.stringContaining('schema.sql'), 'utf8');
-            expect(connection.query).toHaveBeenCalledTimes(2);
+            expect(connection.query).toHaveBeenCalledTimes(3);
             expect(connection.query).toHaveBeenNthCalledWith(1, 'CREATE TABLE test (id INT)');
             expect(connection.query).toHaveBeenNthCalledWith(2, expect.stringContaining('INSERT INTO test VALUES (1)'));
+            expect(connection.query).toHaveBeenNthCalledWith(3, expect.stringContaining('ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_provider'));
             expect(connection.release).toHaveBeenCalled();
 
             consoleLogSpy.mockRestore();

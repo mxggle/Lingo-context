@@ -41,7 +41,7 @@ passport.deserializeUser(async (id, done) => {
             return done(null, cached);
         }
 
-        const res = await db.query('SELECT id, email, display_name, avatar_url, target_language, last_login FROM users WHERE id = ?', [id]);
+        const res = await db.query('SELECT id, email, display_name, avatar_url, target_language, ai_provider, last_login FROM users WHERE id = ?', [id]);
         if (res.rows.length > 0) {
             setCachedUser(id, res.rows[0]);
             done(null, res.rows[0]);
@@ -61,7 +61,7 @@ passport.use(new GoogleStrategy({
     scope: ['profile', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
     try {
-        let res = await db.query('SELECT id, email, display_name, avatar_url, target_language, last_login FROM users WHERE google_id = ?', [profile.id]);
+        let res = await db.query('SELECT id, email, display_name, avatar_url, target_language, ai_provider, last_login FROM users WHERE google_id = ?', [profile.id]);
 
         if (res.rows.length > 0) {
             await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [res.rows[0].id]);
@@ -76,7 +76,7 @@ passport.use(new GoogleStrategy({
                 'INSERT INTO users (google_id, email, display_name, avatar_url) VALUES (?, ?, ?, ?)',
                 [profile.id, email, displayName, avatarUrl]
             );
-            res = await db.query('SELECT id, email, display_name, avatar_url, target_language, last_login FROM users WHERE google_id = ?', [profile.id]);
+            res = await db.query('SELECT id, email, display_name, avatar_url, target_language, ai_provider, last_login FROM users WHERE google_id = ?', [profile.id]);
             return done(null, res.rows[0]);
         }
     } catch (err) {

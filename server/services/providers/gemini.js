@@ -5,6 +5,7 @@
 const { fetchWithRetry } = require('../../fetchWithRetry');
 const { logCacheMetrics } = require('../promptCacheManager');
 const { getCacheName } = require('../geminiCacheService');
+const { getOutputTokenLimit } = require('../outputTokenLimit');
 
 const PROVIDER_NAME = 'gemini';
 
@@ -41,7 +42,8 @@ function buildRequest(systemInstruction, prompt, options = {}) {
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 512,
+            maxOutputTokens: options.maxOutputTokens || getOutputTokenLimit('GEMINI_MAX_OUTPUT_TOKENS'),
+            ...(options.noThinking && { thinkingConfig: { thinkingBudget: 0 } }),
         }
     };
 
@@ -78,15 +80,15 @@ function extractUsage(usageMeta, model) {
  * Returns { contentText, usage }
  */
 async function callAPI(systemInstruction, prompt, options = {}) {
-    // Try to get an explicit cache for this language
-    const cachedContentName = await getCacheName(options.targetLanguage).catch(err => {
+    // Try to get an explicit cache for this language (skipped for lightweight calls)
+    const cachedContentName = options.skipCache ? null : await getCacheName(options.targetLanguage).catch(err => {
         console.warn('[ExplicitCache] getCacheName failed in callAPI:', err.message);
         return null;
     });
     if (cachedContentName) {
         console.log('[ExplicitCache] Using cache:', cachedContentName);
     }
-    const { url, body, model } = buildRequest(systemInstruction, prompt, { cachedContentName });
+    const { url, body, model } = buildRequest(systemInstruction, prompt, { ...options, cachedContentName });
 
     const response = await fetchWithRetry(url, {
         method: 'POST',
@@ -160,6 +162,7 @@ function parseSSEData(dataStr) {
         const parsed = JSON.parse(dataStr);
         let text = null;
         let usage = null;
+        let finishReason = null;
 
         const usageMeta = parsed.usageMetadata;
         if (usageMeta) {
@@ -175,9 +178,10 @@ function parseSSEData(dataStr) {
         const candidates = parsed.candidates;
         if (candidates && candidates.length > 0) {
             text = candidates[0].content?.parts?.[0]?.text || null;
+            finishReason = candidates[0].finishReason || null;
         }
 
-        return { text, usage };
+        return { text, usage, ...(finishReason ? { finishReason } : {}) };
     } catch (e) {
         return null;
     }

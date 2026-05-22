@@ -72,6 +72,15 @@ describe('Gemini Provider', () => {
             expect(model).toBe('custom-model');
         });
 
+        it('should use a larger configurable output token limit', () => {
+            const { body } = buildRequest('sys', 'prompt');
+            expect(body.generationConfig.maxOutputTokens).toBe(2048);
+
+            process.env.AI_MAX_OUTPUT_TOKENS = '3072';
+            const custom = buildRequest('sys', 'prompt');
+            expect(custom.body.generationConfig.maxOutputTokens).toBe(3072);
+        });
+
         it('should throw if GEMINI_API_KEY is not set', () => {
             delete process.env.GEMINI_API_KEY;
             expect(() => buildRequest('sys', 'prompt')).toThrow('Server configuration error: API Key missing');
@@ -99,7 +108,7 @@ describe('Gemini Provider', () => {
             const result = await callAPI('system instruction', 'user prompt');
 
             expect(fetchWithRetry).toHaveBeenCalledWith(
-                expect.stringContaining('models/gemini-2.0-flash:generateContent'),
+                expect.stringContaining('models/gemini-2.5-flash:generateContent'),
                 expect.objectContaining({
                     method: 'POST',
                     body: expect.stringContaining('systemInstruction')
@@ -113,7 +122,7 @@ describe('Gemini Provider', () => {
 
             expect(result.contentText).toBe('{"meaning": "hello"}');
             expect(result.usage).toEqual({
-                model: 'gemini-2.0-flash',
+                model: 'gemini-2.5-flash',
                 promptTokens: 10,
                 completionTokens: 20,
                 totalTokens: 30
@@ -159,6 +168,13 @@ describe('Gemini Provider', () => {
                 text: null,
                 usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 }
             });
+        });
+
+        it('should parse finish reason from Gemini candidates', () => {
+            const result = parseSSEData(JSON.stringify({
+                candidates: [{ finishReason: 'MAX_TOKENS' }]
+            }));
+            expect(result).toEqual({ text: null, usage: null, finishReason: 'MAX_TOKENS' });
         });
 
         it('should return null for invalid JSON', () => {

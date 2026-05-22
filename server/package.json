@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest --verbose",
-    "test:coverage": "jest --verbose --coverage"
+    "test": "jest --runInBand --verbose",
+    "test:coverage": "jest --runInBand --verbose --coverage"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +16,8 @@
     "express": "^5.2.1",
     "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.0",
+    "kuromoji": "^0.1.2",
+    "msedge-tts": "^2.0.5",
     "mysql2": "^3.11.0",
     "node-fetch": "^3.3.2",
     "passport": "^0.7.0",

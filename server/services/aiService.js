@@ -1,7 +1,9 @@
 // AI Service — provider-agnostic text analysis with caching
 
-const { getSystemInstruction, generatePrompt } = require('../prompts');
+const { getSystemInstruction, generatePrompt, normalizePromptContext } = require('../prompts');
 const { getProvider } = require('./providers');
+const { normalizeTargetLanguage, shouldRetryForLanguageMismatch } = require('../targetLanguage');
+const { normalizeAnalysisResult } = require('./normalizeAnalysisResult');
 
 // ── In-memory result cache ─────────────────────────────────────────────────
 // Caches the last CACHE_MAX_SIZE unique (text, context, targetLanguage) lookups
@@ -11,7 +13,8 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const _cache = new Map();
 
 function _cacheKey(text, context, targetLanguage) {
-    return `${targetLanguage}:${text}:${String(context)}`;
+    const trimmedContext = normalizePromptContext(context);
+    return `${targetLanguage}:${text}:${trimmedContext}`;
 }
 
 function _cacheGet(key) {
@@ -42,44 +45,51 @@ function calculateCost(promptTokens, completionTokens) {
 }
 
 // Call AI provider and return parsed result (cache-aware)
-async function analyzeText({ text, context, targetLanguage }) {
-    const cacheKey = _cacheKey(text, context, targetLanguage);
+async function analyzeText({ text, context, targetLanguage, aiProvider }) {
+    const normalizedTargetLanguage = normalizeTargetLanguage(targetLanguage).name;
+    const cacheKey = _cacheKey(text, context, normalizedTargetLanguage);
     const cached = _cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+        console.log(`[AI] Cache HIT for "${text.slice(0, 40)}" (lang: ${normalizedTargetLanguage})`);
+        return cached;
+    }
 
-    const provider = getProvider();
-    const systemInstruction = getSystemInstruction(targetLanguage);
-    const prompt = generatePrompt(text, context, targetLanguage);
+    const provider = getProvider(aiProvider);
+    const prompt = generatePrompt(text, context, normalizedTargetLanguage);
+    let result;
+    let usage;
 
-    const { contentText, usage } = await provider.callAPI(systemInstruction, prompt, { targetLanguage });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const systemInstruction = getSystemInstruction(normalizedTargetLanguage, {
+            strictLanguageOnly: attempt > 0
+        });
+
+        const callTime = new Date().toISOString();
+        const startMs = Date.now();
+        console.log(`[AI] ▶ Calling provider (attempt ${attempt + 1}) | lang: ${normalizedTargetLanguage} | time: ${callTime}`);
+        console.log(`[AI]   selection: "${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`); 
+
+        const response = await provider.callAPI(systemInstruction, prompt, {
+            targetLanguage: normalizedTargetLanguage
+        });
+        const elapsedMs = Date.now() - startMs;
+        usage = response.usage;
+
+        const modelName = usage?.model || provider.name || 'unknown';
+        console.log(`[AI] ✔ Response received | model: ${modelName} | elapsed: ${elapsedMs}ms | tokens: ${usage?.totalTokens ?? '?'} (prompt: ${usage?.promptTokens ?? '?'}, completion: ${usage?.completionTokens ?? '?'})`);
+
+        const jsonMatch = response.contentText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Invalid JSON format in response');
+
+        result = normalizeAnalysisResult(JSON.parse(jsonMatch[0]), text);
+
+        if (!shouldRetryForLanguageMismatch(result, normalizedTargetLanguage) || attempt > 0) {
+            break;
+        }
+        console.log(`[AI] ↩ Language mismatch detected, retrying with strict mode…`);
+    }
 
     const cost = calculateCost(usage.promptTokens, usage.completionTokens);
-
-    // Parse JSON from content
-    const jsonMatch = contentText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Invalid JSON format in response');
-
-    const result = JSON.parse(jsonMatch[0]);
-    if (result.source_language && !result.language) {
-        result.language = result.source_language;
-    }
-
-    // Furigana reconstruction for Japanese
-    const isJapanese = result.language === 'ja' || result.source_language === 'ja';
-    const hasReadings = result.segments && Array.isArray(result.segments) &&
-        result.segments.some(s => s.reading && s.reading !== s.text);
-
-    if (isJapanese && hasReadings) {
-        result.furigana = result.segments.map(segment => {
-            if (segment.reading && segment.reading !== segment.text) {
-                return `<ruby>${segment.text}<rt>${segment.reading}</rt></ruby>`;
-            }
-            return segment.text;
-        }).join('');
-    } else {
-        result.furigana = text;
-    }
-
     const response2 = {
         result,
         usage: { ...usage, cost }

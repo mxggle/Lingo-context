@@ -428,5 +428,21 @@ describe('codex.js', () => {
             const result = codexProvider.parseSSEData(data);
             expect(result).toEqual({ text: null, usage: null });
         });
+
+        it('should parse text from delta.text when content is absent', () => {
+            const data = JSON.stringify({
+                choices: [{ delta: { text: 'Hello from text field' } }]
+            });
+            const result = codexProvider.parseSSEData(data);
+            expect(result).toEqual({ text: 'Hello from text field', usage: null });
+        });
+
+        it('should parse finish reason from choices', () => {
+            const data = JSON.stringify({
+                choices: [{ delta: {}, finish_reason: 'length' }]
+            });
+            const result = codexProvider.parseSSEData(data);
+            expect(result).toEqual({ text: null, usage: null, finishReason: 'length' });
+        });
     });
 });

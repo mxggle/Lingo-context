@@ -4,9 +4,9 @@ services:
   server:
     build: ./server
     ports:
-      - "3000:3000"
+      - "3303:3303"
     environment:
-      - PORT=3000
+      - PORT=3303
       - DATABASE_URL=mysql://user:password@mysql:3306/LingoContext
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL}

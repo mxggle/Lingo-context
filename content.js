@@ -4,7 +4,7 @@
 // Inline config (content scripts can't use ES modules)
 const CONFIG = {
   WORD_THRESHOLD: 3,
-  CONTEXT_LENGTH: 150
+  CONTEXT_SENTENCE_MAX: 320
 };
 
 // State management
@@ -12,6 +12,7 @@ let popup = null;
 let triggerIcon = null;
 let shadowRoot = null;
 let isLoading = false;
+let definitionRequestId = 0;
 let currentSelection = null;
 let activeSelection = null;
 let isDragging = false;
@@ -32,6 +33,14 @@ let interfaceLanguage = 'en';
 // Initialize the extension
 let isExtensionEnabled = true;
 let autoPlayAudio = false;
+const wordDefinitionCache = new Map(); // text → string[]
+
+// Current speak state (updated immediately on selection, refined when AI finishes)
+let currentSpeakText = '';
+let currentSpeakLang = 'en';
+let currentAudio = null;
+let currentAudioUrl = null;
+let speechRequestId = 0;
 
 async function init() {
   // Check for auth data from success page (for login flow)
@@ -206,12 +215,9 @@ function createPopup() {
   triggerIcon = document.createElement('div');
   triggerIcon.id = 'lingo-context-trigger';
   triggerIcon.className = 'trigger-icon hidden';
-  // Simple sparkle/AI icon
+  // Custom cursor/sun icon
   triggerIcon.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
-      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-opacity="0.5" stroke-width="1.5"></path>
-      <circle cx="12" cy="12" r="4" fill="#fbbf24" stroke="none"></circle>
-    </svg>
+    <img src="${chrome.runtime.getURL('icons/cursor.png')}" alt="Translate" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));" />
   `;
   shadowRoot.appendChild(triggerIcon);
 
@@ -246,6 +252,7 @@ function getPopupStyles() {
       color: #e7e5e4;
       animation: slideUp 0.25s ease-out;
       overflow: auto;
+      overscroll-behavior: contain;
       resize: both;
     }
 
@@ -324,12 +331,26 @@ function getPopupStyles() {
       user-select: none;
     }
 
+    .header-left-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-logo {
+      width: 16px;
+      height: 16px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 1px white);
+    }
+
     .popup-title {
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: #a8a29e;
+      line-height: 1;
     }
 
     .header-actions {
@@ -375,28 +396,32 @@ function getPopupStyles() {
       padding: 16px;
       flex: 1;
       overflow-y: auto;
+      overscroll-behavior: contain;
       min-height: 0; /* required for flex overflow to work */
     }
 
     .selected-text {
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 26px;
+      font-weight: 700;
       color: #fafaf9;
-      margin-bottom: 12px;
-      line-height: 1.4;
+      line-height: 2;
+      overflow: visible;
     }
 
     .selected-text ruby {
       display: ruby;
       ruby-position: over;
+      ruby-align: center;
     }
 
     .selected-text rt {
       display: ruby-text;
-      font-size: 0.5em;
-      text-align: center;
+      font-size: 11px;
+      font-weight: 400;
       color: #fbbf24;
+      letter-spacing: 0.04em;
     }
+
 
     .section {
       margin-bottom: 12px;
@@ -428,6 +453,17 @@ function getPopupStyles() {
     .grammar-content {
       color: #fcd34d;
       font-size: 13px;
+      white-space: pre-line;
+    }
+
+    .dictionary-content {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #6ee7b7;
+    }
+
+    .dict-entry + .dict-entry {
+      margin-top: 3px;
     }
 
     .actions {
@@ -620,34 +656,52 @@ function getPopupStyles() {
     .trigger-icon {
       position: fixed;
       z-index: 2147483647;
-      width: 36px;
-      height: 36px;
-      background: #1c1917;
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      border-radius: 50%;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+      width: 48px; /* 稍微再大一点点 */
+      height: 48px;
+      background: transparent;
+      border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fbbf24;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      /* 核心视觉优化：给爪子加一层白色的“描边”感和更强的投影 */
+      filter: drop-shadow(0 0 2px white) drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       transform: scale(0);
       opacity: 0;
+      transform-origin: center;
     }
 
     .trigger-icon.visible {
-      transform: scale(1);
-      opacity: 1;
+      /* 登场动画：弹性放大 + 持续的微呼吸 */
+      animation: pawPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+                 pawPulse 2s ease-in-out infinite 0.4s;
+    }
+
+    @keyframes pawPopIn {
+      0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+      70% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    @keyframes pawPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
     }
 
     .trigger-icon:hover {
-      transform: scale(1.1);
-      background: #292524;
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
-      border-color: #fbbf24;
+      transform: scale(1.2) rotate(-10deg) !important;
+      filter: drop-shadow(0 0 4px white) drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+      animation-play-state: paused; /* 悬停时停止呼吸 */
     }
     
+    .trigger-icon.clicked {
+      transform: scale(0.6) rotate(20deg);
+      opacity: 0;
+      transition: all 0.15s ease-in;
+    }
+
     .trigger-icon.hidden {
       display: none;
     }
@@ -723,6 +777,36 @@ function setupEventListeners() {
 
   // Drag functionality
   setupDragListeners();
+  setupPopupScrollContainment();
+}
+
+function shouldContainPopupWheel(scrollContainer, deltaY) {
+  if (!scrollContainer || deltaY === 0) {
+    return false;
+  }
+
+  const maxScrollTop = Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0);
+  if (maxScrollTop === 0) {
+    return true;
+  }
+
+  if (deltaY < 0) {
+    return scrollContainer.scrollTop <= 0;
+  }
+
+  return scrollContainer.scrollTop >= maxScrollTop;
+}
+
+function setupPopupScrollContainment() {
+  popup.addEventListener('wheel', (event) => {
+    const scrollContainer = event.target.closest('.popup-content') || popup;
+
+    if (shouldContainPopupWheel(scrollContainer, event.deltaY)) {
+      event.preventDefault();
+    }
+
+    event.stopPropagation();
+  }, { passive: false });
 }
 
 function setupDragListeners() {
@@ -836,6 +920,99 @@ function handleSelection(e) {
   showTriggerIcon(rect, text, mode);
 }
 
+function normalizeContextText(text) {
+  return (text || '').replace(/\s+/g, ' ').trim();
+}
+
+function splitIntoSentences(text) {
+  const sentences = [];
+  let start = 0;
+  const sentenceEndPattern = /[。.!?！？]/;
+  const closingPunctuationPattern = /["'”’」』）)\]｝】》]/;
+
+  for (let i = 0; i < text.length; i++) {
+    if (!sentenceEndPattern.test(text[i])) continue;
+
+    let end = i + 1;
+    while (end < text.length && closingPunctuationPattern.test(text[end])) {
+      end++;
+    }
+
+    const sentenceText = text.slice(start, end);
+    if (normalizeContextText(sentenceText)) {
+      sentences.push({ start, end, text: sentenceText });
+    }
+
+    start = end;
+    while (start < text.length && /\s/.test(text[start])) {
+      start++;
+    }
+    i = start - 1;
+  }
+
+  if (start < text.length) {
+    const sentenceText = text.slice(start);
+    if (normalizeContextText(sentenceText)) {
+      sentences.push({ start, end: text.length, text: sentenceText });
+    }
+  }
+
+  return sentences;
+}
+
+function isSentenceSelection(selectedText) {
+  const text = normalizeContextText(selectedText);
+  if (!text) return false;
+  if (/[。.!?！？]["'”’」』）)\]｝】》]*$/.test(text)) return true;
+  return text.split(/\s+/).filter(Boolean).length > CONFIG.WORD_THRESHOLD;
+}
+
+function trimSentenceAroundSelection(sentenceText, selectedText) {
+  const normalizedSentence = normalizeContextText(sentenceText);
+  if (normalizedSentence.length <= CONFIG.CONTEXT_SENTENCE_MAX) {
+    return normalizedSentence;
+  }
+
+  const selectedIndex = normalizedSentence.indexOf(normalizeContextText(selectedText));
+  if (selectedIndex === -1) {
+    return normalizedSentence.slice(0, CONFIG.CONTEXT_SENTENCE_MAX).trim();
+  }
+
+  const selectedLength = normalizeContextText(selectedText).length;
+  const spareChars = Math.max(CONFIG.CONTEXT_SENTENCE_MAX - selectedLength, 0);
+  const beforeChars = Math.floor(spareChars / 2);
+  const start = Math.max(0, selectedIndex - beforeChars);
+  const end = Math.min(normalizedSentence.length, start + CONFIG.CONTEXT_SENTENCE_MAX);
+  const trimmed = normalizedSentence.slice(start, end).trim();
+
+  return `${start > 0 ? '...' : ''}${trimmed}${end < normalizedSentence.length ? '...' : ''}`;
+}
+
+function getSelectedTextContext(fullText, selectedText) {
+  const index = fullText.indexOf(selectedText);
+  if (index === -1) {
+    return normalizeContextText(selectedText);
+  }
+
+  const selectionEnd = index + selectedText.length;
+  const sentences = splitIntoSentences(fullText);
+  const selectedSentenceIndex = sentences.findIndex(sentence =>
+    sentence.start <= index && sentence.end >= selectionEnd
+  );
+
+  if (selectedSentenceIndex === -1) {
+    return normalizeContextText(selectedText);
+  }
+
+  if (!isSentenceSelection(selectedText)) {
+    return trimSentenceAroundSelection(sentences[selectedSentenceIndex].text, selectedText);
+  }
+
+  const start = Math.max(0, selectedSentenceIndex - 1);
+  const end = Math.min(sentences.length, selectedSentenceIndex + 2);
+  return normalizeContextText(sentences.slice(start, end).map(sentence => sentence.text).join(' '));
+}
+
 // Get surrounding context for better analysis
 function getSurroundingContext(selection) {
   try {
@@ -850,31 +1027,21 @@ function getSurroundingContext(selection) {
 
     let contextParts = [];
 
-    // Add page context (title + URL + hostname)
+    // Add only the page title as page-level context.
     const pageTitle = document.title?.trim();
-    const pageUrl = window.location.hostname;
-    const pageMetaDesc = document.querySelector('meta[name="description"]')?.content;
 
     if (pageTitle) {
       contextParts.push(`[${getPageContextLabel('pageTitleLabel', 'Page Title')}: ${pageTitle}]`);
     }
-    if (pageUrl) {
-      contextParts.push(`[${getPageContextLabel('websiteLabel', 'Website')}: ${pageUrl}]`);
-    }
-    if (pageMetaDesc) {
-      contextParts.push(`[${getPageContextLabel('descriptionLabel', 'Description')}: ${pageMetaDesc.slice(0, 200)}]`);
-    }
 
-    // Add surrounding text context
+    // Add a short selection-level context: word/term = current sentence,
+    // sentence/passage = previous + selected + next sentence.
     if (parent) {
       const fullText = parent.textContent || '';
       const selectedText = selection.toString();
-      const index = fullText.indexOf(selectedText);
-
-      if (index !== -1) {
-        const start = Math.max(0, index - CONFIG.CONTEXT_LENGTH);
-        const end = Math.min(fullText.length, index + selectedText.length + CONFIG.CONTEXT_LENGTH);
-        contextParts.push(fullText.substring(start, end));
+      const selectedTextContext = getSelectedTextContext(fullText, selectedText);
+      if (selectedTextContext) {
+        contextParts.push(selectedTextContext);
       }
     }
 
@@ -895,7 +1062,7 @@ function showTriggerIcon(rect, text, mode) {
 
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const ICON_SIZE = 36;
+  const ICON_SIZE = 48;
   const GAP = 10;
 
   // Position to the right of the end of selection
@@ -924,9 +1091,12 @@ function showTriggerIcon(rect, text, mode) {
   triggerIcon.onclick = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    triggerIcon.classList.remove('visible');
-    triggerIcon.classList.add('hidden');
-    showPopup(rect, text, mode);
+    triggerIcon.classList.add('clicked');
+    setTimeout(() => {
+      triggerIcon.classList.remove('visible', 'clicked');
+      triggerIcon.classList.add('hidden');
+      showPopup(rect, text, mode);
+    }, 150);
   };
 }
 
@@ -997,6 +1167,71 @@ function showPopup(rect, text, mode) {
   });
 }
 
+// Detect if text contains Japanese characters
+function isJapaneseText(text) {
+  return /[　-鿿豈-﫿]/.test(text);
+}
+
+// Update the selected-text element with furigana HTML
+function updateFuriganaDisplay(html, smooth = false) {
+  const el = popup?.querySelector('.selected-text');
+  if (!el) return;
+  const safeHtml = sanitizeFuriganaHtml(html);
+  if (smooth) {
+    el.style.transition = 'opacity 0.1s ease';
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.innerHTML = safeHtml;
+      el.style.opacity = '1';
+    }, 100);
+  } else {
+    el.innerHTML = safeHtml;
+  }
+}
+
+// Keep furigana rendering limited to ruby annotation markup from the backend.
+function sanitizeFuriganaHtml(html) {
+  const allowedTags = new Set(['ruby', 'rt', 'rp', 'rb']);
+  return String(html || '').replace(/<\/?([a-zA-Z][\w:-]*)(?:\s[^>]*)?>/g, (tag, tagName) => {
+    const normalized = tagName.toLowerCase();
+    if (!allowedTags.has(normalized)) return '';
+    return tag.startsWith('</') ? `</${normalized}>` : `<${normalized}>`;
+  });
+}
+
+// Strip ruby annotations from non-kanji characters (hiragana/katakana should not have furigana)
+function filterKanjiOnlyFurigana(html) {
+  const template = document.createElement('template');
+  template.innerHTML = sanitizeFuriganaHtml(html);
+  template.content.querySelectorAll('ruby').forEach(ruby => {
+    const rt = ruby.querySelector('rt');
+    const baseText = [...ruby.childNodes]
+      .filter(n => n !== rt)
+      .map(n => n.textContent)
+      .join('');
+    if (!/[一-鿿]/.test(baseText)) {
+      ruby.replaceWith(document.createTextNode(baseText));
+    }
+  });
+  const div = document.createElement('div');
+  div.appendChild(template.content);
+  return sanitizeFuriganaHtml(div.innerHTML);
+}
+
+// Render quick definition meanings as HTML string
+function renderDictHtml(meanings) {
+  if (!meanings?.length) return '';
+  return meanings.map((m, i) =>
+    `<div class="dict-entry">${i + 1}. ${escapeHtml(m)}</div>`
+  ).join('');
+}
+
+// Update the quick definition section content in the popup
+function updateDictionarySection(meanings) {
+  const el = popup?.querySelector('.dictionary-content');
+  if (el) el.innerHTML = renderDictHtml(meanings);
+}
+
 // Streaming helper: Extract partial string values from streaming JSON
 const STREAMING_KEYS = ['meaning', 'grammar', 'furigana', 'audio_text', 'language'];
 const STREAMING_REGEXES = {};
@@ -1035,18 +1270,49 @@ function updateStreamingResult(data) {
 function analyzeText(text, context, mode) {
   isLoading = true;
   let streamingText = '';
+  let fastDictDefinitions = null;
 
-  // Render initial skeleton popup
+  // Render immediately — no waiting
   popup.innerHTML = renderResult(text, {}, mode, true);
   syncPinButton();
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
-  // Setup initial actions (disabled save/listen while streaming)
   const speakBtn = popup.querySelector('[data-action="speak"]');
   const saveBtn = popup.querySelector('[data-action="save"]');
-  if (speakBtn) speakBtn.disabled = true;
   if (saveBtn) saveBtn.disabled = true;
+
+  currentSpeakText = text;
+  currentSpeakLang = detectLanguage(text);
+  if (speakBtn) {
+    speakBtn.addEventListener('click', () => speakText(currentSpeakText, currentSpeakLang));
+  }
+
+  if (isJapaneseText(text)) {
+    chrome.runtime.sendMessage({ type: 'FAST_FURIGANA', text }, (res) => {
+      if (res?.furigana?.includes('<ruby>')) {
+        updateFuriganaDisplay(res.furigana);
+      }
+    });
+  }
+
+  if (mode === 'word') {
+    const myRequestId = ++definitionRequestId;
+    const cached = wordDefinitionCache.get(text);
+    if (cached) {
+      fastDictDefinitions = cached;
+      updateDictionarySection(cached);
+    } else {
+      chrome.runtime.sendMessage({ type: 'WORD_DEFINITION', text, nativeLanguage: interfaceLanguage }, (res) => {
+        if (myRequestId !== definitionRequestId) return;
+        if (res?.meanings?.length) {
+          wordDefinitionCache.set(text, res.meanings);
+          fastDictDefinitions = res.meanings;
+          updateDictionarySection(res.meanings);
+        }
+      });
+    }
+  }
 
   try {
     const port = chrome.runtime.connect({ name: 'analyze-stream' });
@@ -1093,28 +1359,51 @@ function analyzeText(text, context, mode) {
       isLoading = false;
       try {
         const fullData = JSON.parse(streamingText);
-        popup.innerHTML = renderResult(text, fullData, mode);
+
+        // Targeted updates — preserve .dictionary-content (Quick Definition) in place
+        // to avoid a visual jump when finishStream fires after WORD_DEFINITION has filled it
+        const meaningEl = popup.querySelector('.meaning-content');
+        if (meaningEl && fullData.meaning) meaningEl.innerHTML = escapeHtml(fullData.meaning);
+
+        const grammarEl = popup.querySelector('.grammar-content');
+        if (grammarEl && fullData.grammar) grammarEl.innerHTML = escapeHtml(fullData.grammar);
+
+        const saveBtnEl = popup.querySelector('[data-action="save"]');
+        if (saveBtnEl) saveBtnEl.disabled = false;
+
+        // Refine speak target with AI-cleaned text
+        currentSpeakText = fullData.audio_text || text;
+        currentSpeakLang = fullData.language || detectLanguage(currentSpeakText);
+
         syncPinButton();
         setupPopupActions(fullData);
+
+        if (fullData.furigana?.includes('<ruby>')) {
+          updateFuriganaDisplay(filterKanjiOnlyFurigana(fullData.furigana), true);
+        }
         if (autoPlayAudio) {
-          const textToSpeak = fullData.audio_text || text;
-          const lang = fullData.language || detectLanguage(textToSpeak);
-          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+          speakText(currentSpeakText, currentSpeakLang);
         }
       } catch (e) {
-        // Fallback if final JSON is malformed
+        // Fallback if final JSON is malformed or empty
+        if (!streamingText.trim()) {
+          popup.innerHTML = renderError(getTransl('streamEmptyError') || 'No response from AI service. Please try again.');
+          syncPinButton();
+          setupErrorActions();
+          return;
+        }
+
         const partialData = extractStreamingJson(streamingText);
 
-        // Clean up visual loading state
-        if (speakBtn) speakBtn.disabled = false;
         if (saveBtn) saveBtn.disabled = false;
+
+        currentSpeakText = partialData.audio_text || text;
+        currentSpeakLang = partialData.language || detectLanguage(currentSpeakText);
 
         syncPinButton();
         setupPopupActions(partialData);
         if (autoPlayAudio) {
-          const textToSpeak = partialData.audio_text || text;
-          const lang = partialData.language || detectLanguage(textToSpeak);
-          chrome.runtime.sendMessage({ type: 'PLAY_TTS', text: textToSpeak, lang });
+          speakText(currentSpeakText, currentSpeakLang);
         }
       }
     }
@@ -1154,7 +1443,10 @@ function renderLoading() {
 
   return `
     <div class="popup-header">
-      <span class="popup-title">${escapeHtml(analyzingStr)}</span>
+      <div class="header-left-group">
+        <img src="${chrome.runtime.getURL('icons/icon32.png')}" class="header-logo" alt="logo" />
+        <span class="popup-title">${escapeHtml(analyzingStr)}</span>
+      </div>
       <div class="header-actions">
         ${pinBtnHtml()}
         <button class="close-btn" data-action="close">
@@ -1179,7 +1471,10 @@ function renderError(message) {
 
   return `
     <div class="popup-header">
-      <span class="popup-title">${escapeHtml(errorTitleStr)}</span>
+      <div class="header-left-group">
+        <img src="${chrome.runtime.getURL('icons/icon32.png')}" class="header-logo" alt="logo" />
+        <span class="popup-title">${escapeHtml(errorTitleStr)}</span>
+      </div>
       <div class="header-actions">
         ${pinBtnHtml()}
         <button class="close-btn" data-action="close">
@@ -1199,7 +1494,7 @@ function renderError(message) {
 }
 
 // Render analysis result
-function renderResult(originalText, data, mode, isStreamingInit = false) {
+function renderResult(originalText, data, mode, isStreamingInit = false, dictDefinitions = null) {
   // Use original text by default to preserve spacing/formatting
   let displayText = escapeHtml(originalText);
 
@@ -1228,9 +1523,24 @@ function renderResult(originalText, data, mode, isStreamingInit = false) {
     <div class="skeleton skeleton-line" style="width: 60%"></div>
   `;
 
+  const showDictSection = mode === 'word';
+  const dictHtml = showDictSection ? `
+      <div class="section">
+        <div class="section-label">${getTransl('quickDefinitionLabel') || 'Quick Definition'}</div>
+        <div class="section-content dictionary-content">${
+          isStreamingInit
+            ? (dictDefinitions ? renderDictHtml(dictDefinitions) : skeletonHtml)
+            : (dictDefinitions ? renderDictHtml(dictDefinitions) : '')
+        }</div>
+      </div>
+  ` : '';
+
   return `
     <div class="popup-header">
-      <span class="popup-title">${escapeHtml(modeLabel)}</span>
+      <div class="header-left-group">
+        <img src="${chrome.runtime.getURL('icons/icon32.png')}" class="header-logo" alt="logo" />
+        <span class="popup-title">${escapeHtml(modeLabel)}</span>
+      </div>
       <div class="header-actions">
         ${pinBtnHtml()}
         <button class="close-btn" data-action="close">
@@ -1242,6 +1552,8 @@ function renderResult(originalText, data, mode, isStreamingInit = false) {
     </div>
     <div class="popup-content">
       <div class="selected-text">${displayText}</div>
+
+      ${dictHtml}
 
       <div class="section">
         <div class="section-label">${escapeHtml(meaningLabel)}</div>
@@ -1301,17 +1613,6 @@ function setupPopupActions(data) {
   popup.querySelector('[data-action="close"]')?.addEventListener('click', hidePopup);
   popup.querySelector('[data-action="pin"]')?.addEventListener('click', handlePinAction);
 
-  popup.querySelector('[data-action="speak"]')?.addEventListener('click', () => {
-    const textToSpeak = data.audio_text || activeSelection?.text;
-    const lang = data.language || detectLanguage(textToSpeak);
-
-    chrome.runtime.sendMessage({
-      type: 'PLAY_TTS',
-      text: textToSpeak,
-      lang
-    });
-  });
-
   popup.querySelector('[data-action="save"]')?.addEventListener('click', () => {
     saveWord(activeSelection?.text, data);
   });
@@ -1342,6 +1643,91 @@ function detectLanguage(text) {
   }
 
   return 'other';
+}
+
+// Speak via Edge TTS (routed through background.js), fall back to Web Speech API
+function speakText(text, lang) {
+  if (!text) return;
+  const requestId = ++speechRequestId;
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  stopCurrentAudio();
+
+  chrome.runtime.sendMessage({ type: 'EDGE_TTS', text, lang }, (response) => {
+    if (requestId !== speechRequestId) return;
+    if (chrome.runtime.lastError || !response?.audio) {
+      speakWithWebSpeech(text, lang);
+      return;
+    }
+    try {
+      const binary = atob(response.audio);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      currentAudio = audio;
+      currentAudioUrl = url;
+      audio.onended = () => {
+        if (currentAudio === audio) clearCurrentAudio();
+        else URL.revokeObjectURL(url);
+      };
+      audio.onerror = () => {
+        if (currentAudio === audio) clearCurrentAudio();
+        else URL.revokeObjectURL(url);
+        if (requestId === speechRequestId) speakWithWebSpeech(text, lang);
+      };
+      audio.play().catch(() => {
+        if (currentAudio === audio) clearCurrentAudio();
+        else URL.revokeObjectURL(url);
+        if (requestId === speechRequestId) speakWithWebSpeech(text, lang);
+      });
+    } catch (_) {
+      if (requestId === speechRequestId) speakWithWebSpeech(text, lang);
+    }
+  });
+}
+
+function stopCurrentAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+  }
+  clearCurrentAudio();
+}
+
+function clearCurrentAudio() {
+  if (currentAudioUrl) {
+    URL.revokeObjectURL(currentAudioUrl);
+  }
+  currentAudio = null;
+  currentAudioUrl = null;
+}
+
+function speakWithWebSpeech(text, lang) {
+  if (!window.speechSynthesis) return;
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  const langMap = {
+    'ja': 'ja-JP', 'en': 'en-US', 'zh': 'zh-CN', 'ko': 'ko-KR',
+    'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES', 'pt': 'pt-BR',
+    'ru': 'ru-RU', 'ar': 'ar-SA', 'it': 'it-IT', 'nl': 'nl-NL',
+    'tr': 'tr-TR', 'pl': 'pl-PL', 'vi': 'vi-VN', 'th': 'th-TH'
+  };
+  const bcp47 = langMap[lang] || 'en-US';
+  const langPrefix = bcp47.split('-')[0];
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = bcp47;
+  utterance.rate = 0.9;
+  utterance.pitch = 1.0;
+  const go = () => {
+    const voices = synth.getVoices();
+    const voice = voices.find(v => v.lang.startsWith(langPrefix) && v.name.includes('Google') && !v.localService)
+      || voices.find(v => v.lang.startsWith(langPrefix) && !v.localService)
+      || voices.find(v => v.lang.startsWith(langPrefix));
+    if (voice) utterance.voice = voice;
+    synth.speak(utterance);
+  };
+  if (synth.getVoices().length > 0) go();
+  else synth.addEventListener('voiceschanged', go, { once: true });
 }
 
 // Save word to backend

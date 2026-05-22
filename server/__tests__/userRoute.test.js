@@ -62,14 +62,14 @@ describe('User Routes', () => {
             expect(res.status).toBe(401);
         });
 
-        it('should return 400 if targetLanguage is missing', async () => {
+        it('should return 400 if no preference field is provided', async () => {
             const res = await request(app)
                 .patch('/user/preferences')
                 .set('Authorization', 'Bearer valid')
                 .send({});
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe('targetLanguage is required');
+            expect(res.body.error).toBe('targetLanguage or aiProvider is required');
         });
 
         it('should update preferences, update session, invalidate cache, and return success', async () => {
@@ -86,6 +86,23 @@ describe('User Routes', () => {
             expect(db.query).toHaveBeenCalledWith(
                 'UPDATE users SET target_language = ? WHERE id = ?',
                 ['French', 1]
+            );
+            expect(invalidateCachedUser).toHaveBeenCalledWith(1);
+        });
+
+        it('should update ai provider independently', async () => {
+            db.query.mockResolvedValue({});
+
+            const res = await request(app)
+                .patch('/user/preferences')
+                .set('Authorization', 'Bearer valid')
+                .send({ aiProvider: 'deepseek' });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual({ success: true, aiProvider: 'deepseek' });
+            expect(db.query).toHaveBeenCalledWith(
+                'UPDATE users SET ai_provider = ? WHERE id = ?',
+                ['deepseek', 1]
             );
             expect(invalidateCachedUser).toHaveBeenCalledWith(1);
         });

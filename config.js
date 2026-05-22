@@ -1,11 +1,8 @@
-// Configuration for LingoContext
-// Update these values with your own backend endpoint
+// Configuration for LingoContext.
+// For local development, override BACKEND_URL through chrome.storage.local.
 
 export const CONFIG = {
   // Backend Configuration (Required for AI and Saving)
-  // Local development
-  // BACKEND_URL: "http://localhost:3000/api",
-  // Production
   BACKEND_URL: "https://lingo-context-api.vercel.app/api",
 
   // TTS Configuration

@@ -87,6 +87,33 @@ describe('OpenRouter Provider', () => {
             expect(result.usage.model).toBe('anthropic/claude-3-haiku');
         });
 
+        it('should use a larger configurable output token limit', async () => {
+            fetchWithRetry.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    choices: [{ message: { content: '{"meaning": "test"}' } }],
+                    usage: {}
+                })
+            });
+
+            await callAPI('sys', 'prompt');
+            let body = JSON.parse(fetchWithRetry.mock.calls[0][1].body);
+            expect(body.max_tokens).toBe(2048);
+
+            process.env.AI_MAX_OUTPUT_TOKENS = '3072';
+            fetchWithRetry.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    choices: [{ message: { content: '{"meaning": "test"}' } }],
+                    usage: {}
+                })
+            });
+
+            await callAPI('sys', 'prompt');
+            body = JSON.parse(fetchWithRetry.mock.calls[1][1].body);
+            expect(body.max_tokens).toBe(3072);
+        });
+
         it('should throw 429 error on rate limit', async () => {
             fetchWithRetry.mockResolvedValueOnce({
                 ok: false,
@@ -156,6 +183,20 @@ describe('OpenRouter Provider', () => {
                 text: 'world',
                 usage: { promptTokens: 5, completionTokens: 15, totalTokens: 20 }
             });
+        });
+
+        it('should parse text from delta.text when content is absent', () => {
+            const result = parseSSEData(JSON.stringify({
+                choices: [{ delta: { text: 'Hello from text field' } }]
+            }));
+            expect(result).toEqual({ text: 'Hello from text field', usage: null });
+        });
+
+        it('should parse finish reason from choices', () => {
+            const result = parseSSEData(JSON.stringify({
+                choices: [{ delta: {}, finish_reason: 'length' }]
+            }));
+            expect(result).toEqual({ text: null, usage: null, finishReason: 'length' });
         });
     });
 });

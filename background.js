@@ -142,6 +142,69 @@ chrome.runtime.onConnect.addListener((port) => {
 // Message listener for content script communication
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
+    if (message.type === 'FAST_FURIGANA') {
+        getConfig('BACKEND_URL').then(async (backendUrl) => {
+            if (!backendUrl) return sendResponse({ furigana: null });
+            try {
+                const res = await fetch(`${backendUrl}/furigana`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message.text }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                sendResponse({ furigana: data.furigana || null });
+            } catch {
+                sendResponse({ furigana: null });
+            }
+        });
+        return true;
+    }
+
+    if (message.type === 'WORD_DEFINITION') {
+        getConfig('BACKEND_URL').then(async (backendUrl) => {
+            if (!backendUrl) return sendResponse({ meanings: [] });
+            try {
+                const res = await fetch(`${backendUrl}/word-definition`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message.text, nativeLanguage: message.nativeLanguage }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                sendResponse({ meanings: data.meanings || [] });
+            } catch {
+                sendResponse({ meanings: [] });
+            }
+        });
+        return true;
+    }
+
+    if (message.type === 'EDGE_TTS') {
+        getConfig('BACKEND_URL').then(async (backendUrl) => {
+            if (!backendUrl) return sendResponse({ error: 'No backend URL' });
+            try {
+                const res = await fetch(`${backendUrl}/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message.text, lang: message.lang }),
+                    credentials: 'include'
+                });
+                if (!res.ok) throw new Error(`${res.status}`);
+                const buf = await res.arrayBuffer();
+                const uint8 = new Uint8Array(buf);
+                let b64 = '';
+                for (let i = 0; i < uint8.length; i += 8192) {
+                    b64 += String.fromCharCode(...uint8.subarray(i, i + 8192));
+                }
+                sendResponse({ audio: btoa(b64) });
+            } catch (err) {
+                sendResponse({ error: err.message });
+            }
+        });
+        return true;
+    }
+
     if (message.type === 'PLAY_TTS') {
         playFreeTTS(message.text, message.lang)
             .then(() => sendResponse({ success: true }))
@@ -199,36 +262,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 });
-
-// Hot reload for development
-if (CONFIG.DEV_MODE) {
-    const HOT_RELOAD_URL = 'http://localhost:35729/events';
-
-    function connectHotReload() {
-        try {
-            const es = new EventSource(HOT_RELOAD_URL);
-
-            es.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'reload') {
-                    console.log('🔄 Hot reload triggered, reloading extension...');
-                    chrome.runtime.reload();
-                }
-            };
-
-            es.onerror = () => {
-                es.close();
-                // Retry connection after 5 seconds
-                setTimeout(connectHotReload, 5000);
-            };
-
-            console.log('🔌 Connected to hot reload server');
-        } catch (e) {
-            console.log('Hot reload server not available');
-        }
-    }
-
-    connectHotReload();
-}
 
 console.log('LingoContext background service worker loaded');

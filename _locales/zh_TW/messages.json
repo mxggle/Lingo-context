@@ -68,6 +68,34 @@
     "clearFilterBtn": {
         "message": "清除篩選"
     },
+    "wordSearchPlaceholder": {
+        "message": "搜尋單字或釋義"
+    },
+    "allLanguagesOption": {
+        "message": "所有語言"
+    },
+    "allGrammarOption": {
+        "message": "所有語法"
+    },
+    "showingRecentWordsSummary": {
+        "message": "顯示最近的 $1 個單字",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            }
+        }
+    },
+    "showingFilteredWordsSummary": {
+        "message": "顯示 $2 個相符單字中的 $1 個",
+        "placeholders": {
+            "1": {
+                "content": "$1"
+            },
+            "2": {
+                "content": "$2"
+            }
+        }
+    },
     "exportPdfBtn": {
         "message": "匯出 CSV"
     },
@@ -211,11 +239,14 @@
     "phraseAnalysisLabel": {
         "message": "片語分析"
     },
+    "quickDefinitionLabel": {
+        "message": "快速釋義"
+    },
     "meaningLabel": {
-        "message": "含義與用法"
+        "message": "✨ AI 詞義洞察"
     },
     "grammarLabel": {
-        "message": "文法與語境"
+        "message": "✨ AI 語境用法解讀"
     },
     "saveBtn": {
         "message": "儲存"

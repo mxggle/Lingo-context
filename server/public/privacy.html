@@ -38,8 +38,8 @@
     <h2 data-i18n="section1Title">1. Information We Collect</h2>
 
     <h3 data-i18n="section1aTitle">a. User-Provided Content</h3>
-    <p data-i18n="section1aBody">When you select text on a webpage and activate the extension, we collect that specific text selection to provide
-        translation and grammatical analysis.</p>
+    <p data-i18n="section1aBody">When you select text on a webpage and activate the extension, we collect that specific text selection together
+        with limited surrounding context and the page title to provide context-aware translation and grammatical analysis.</p>
 
     <h3 data-i18n="section1bTitle">b. Authentication Data</h3>
     <p data-i18n="section1bBody">If you choose to log in, we authenticate you via Google OAuth. We store your basic profile information (email
@@ -50,13 +50,13 @@
     <ul>
         <li data-i18n="section1cItem1">The text you selected</li>
         <li data-i18n="section1cItem2">The generated definition/analysis</li>
-        <li data-i18n="section1cItem3">The URL of the page where you found the text (to provide context)</li>
+        <li data-i18n="section1cItem3">The limited saved context and URL of the page where you found the text</li>
     </ul>
 
     <h2 data-i18n="section2Title">2. How We Use Your Information</h2>
     <ul>
-        <li data-i18n="section2Item1"><strong>To Provide Service:</strong> Selected text is sent to our backend and third-party AI providers
-            (Google Gemini API) solely for the purpose of generating linguistic analysis.</li>
+        <li data-i18n="section2Item1"><strong>To Provide Service:</strong> Selected text, limited surrounding context, and page title are sent
+            to our backend and the configured AI provider solely to generate linguistic analysis.</li>
         <li data-i18n="section2Item2"><strong>To Personalize Experience:</strong> We use your preferences to tailor the target language and audio
             settings.</li>
         <li data-i18n="section2Item3"><strong>To Sync Data:</strong> Your saved vocabulary is stored in our database so you can access it across
@@ -67,16 +67,23 @@
     <p data-i18n="section3Body">We do not sell your personal data. We share specific data points with the following third-party service providers
         only as necessary to function:</p>
     <ul>
-        <li data-i18n="section3Item1"><strong>Google Gemini API:</strong> To generate definitions and grammar explanations.</li>
+        <li data-i18n="section3Item1"><strong>Google Gemini API or DeepSeek:</strong> To generate definitions and grammar explanations,
+            depending on the AI provider configured for your account.</li>
         <li data-i18n="section3Item2"><strong>Google Authentication:</strong> For secure login.</li>
     </ul>
 
     <h2 data-i18n="section4Title">4. Data Retention</h2>
-    <p data-i18n="section4Body">We retain your saved vocabulary and user profile until you delete your account. You may request deletion of your
-        data at any time.</p>
+    <p data-i18n="section4Body">We retain your saved vocabulary and user profile until you delete your account or request deletion of your data.
+        Analysis requests are used to return the requested result and are not sold.</p>
 
-    <h2 data-i18n="section5Title">5. Contact Us</h2>
-    <p data-i18n="section5Body">If you have questions about this policy, please contact us at muggle6594@gmail.com.</p>
+    <h2 data-i18n="section5Title">5. Limited Use</h2>
+    <p data-i18n="section5Body">We use Chrome extension data only to provide and improve the single purpose of LingoContext: language-learning
+        analysis, pronunciation, and vocabulary review. We do not sell personal information, use it for unrelated advertising, or transfer it
+        except as needed to provide the requested service.</p>
+
+    <h2 data-i18n="section6Title">6. Contact Us</h2>
+    <p data-i18n="section6Body">If you have questions about this policy or want to request data deletion, please contact us at
+        muggle6594@gmail.com.</p>
 
     <script>
         const messages = {
@@ -88,26 +95,28 @@
                 intro: 'LingoContext ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how our Chrome Extension collects, uses, and safeguards your information.',
                 section1Title: '1. Information We Collect',
                 section1aTitle: 'a. User-Provided Content',
-                section1aBody: 'When you select text on a webpage and activate the extension, we collect that specific text selection to provide translation and grammatical analysis.',
+                section1aBody: 'When you select text on a webpage and activate the extension, we collect that specific text selection together with limited surrounding context and the page title to provide context-aware translation and grammatical analysis.',
                 section1bTitle: 'b. Authentication Data',
                 section1bBody: 'If you choose to log in, we authenticate you via Google OAuth. We store your basic profile information (email address and name) to create your account and sync your saved vocabulary.',
                 section1cTitle: 'c. Usage Data',
                 section1cBody: 'When you explicitly save a word or phrase to your dashboard, we store:',
                 section1cItem1: 'The text you selected',
                 section1cItem2: 'The generated definition/analysis',
-                section1cItem3: 'The URL of the page where you found the text (to provide context)',
+                section1cItem3: 'The limited saved context and URL of the page where you found the text',
                 section2Title: '2. How We Use Your Information',
-                section2Item1: 'To Provide Service: Selected text is sent to our backend and third-party AI providers (Google Gemini API) solely for the purpose of generating linguistic analysis.',
+                section2Item1: 'To Provide Service: Selected text, limited surrounding context, and page title are sent to our backend and the configured AI provider solely to generate linguistic analysis.',
                 section2Item2: 'To Personalize Experience: We use your preferences to tailor the target language and audio settings.',
                 section2Item3: 'To Sync Data: Your saved vocabulary is stored in our database so you can access it across devices.',
                 section3Title: '3. Data Sharing',
                 section3Body: 'We do not sell your personal data. We share specific data points with the following third-party service providers only as necessary to function:',
-                section3Item1: 'Google Gemini API: To generate definitions and grammar explanations.',
+                section3Item1: 'Google Gemini API or DeepSeek: To generate definitions and grammar explanations, depending on the AI provider configured for your account.',
                 section3Item2: 'Google Authentication: For secure login.',
                 section4Title: '4. Data Retention',
-                section4Body: 'We retain your saved vocabulary and user profile until you delete your account. You may request deletion of your data at any time.',
-                section5Title: '5. Contact Us',
-                section5Body: 'If you have questions about this policy, please contact us at muggle6594@gmail.com.'
+                section4Body: 'We retain your saved vocabulary and user profile until you delete your account or request deletion of your data. Analysis requests are used to return the requested result and are not sold.',
+                section5Title: '5. Limited Use',
+                section5Body: 'We use Chrome extension data only to provide and improve the single purpose of LingoContext: language-learning analysis, pronunciation, and vocabulary review. We do not sell personal information, use it for unrelated advertising, or transfer it except as needed to provide the requested service.',
+                section6Title: '6. Contact Us',
+                section6Body: 'If you have questions about this policy or want to request data deletion, please contact us at muggle6594@gmail.com.'
             },
             ja: {},
             zh_CN: {},

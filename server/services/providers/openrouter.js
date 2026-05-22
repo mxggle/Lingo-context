@@ -2,6 +2,7 @@
 
 const { fetchWithRetry } = require('../../fetchWithRetry');
 const { logCacheMetrics } = require('../promptCacheManager');
+const { getOutputTokenLimit } = require('../outputTokenLimit');
 
 const PROVIDER_NAME = 'openrouter';
 const BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -25,7 +26,7 @@ function buildRequestBody(systemInstruction, prompt, options = {}) {
         ],
         temperature: 0.3,
         top_p: 0.95,
-        max_tokens: 512,
+        max_tokens: getOutputTokenLimit('OPENROUTER_MAX_TOKENS'),
     };
 
     const headers = {
@@ -116,11 +117,15 @@ function parseSSEData(dataStr) {
         const parsed = JSON.parse(dataStr);
         let text = null;
         let usage = null;
+        let finishReason = null;
 
-        // Extract streamed text from delta
+        // Extract streamed text from delta (content is OpenAI standard; text is used by some models)
         const delta = parsed.choices?.[0]?.delta;
+        finishReason = parsed.choices?.[0]?.finish_reason || null;
         if (delta?.content) {
             text = delta.content;
+        } else if (delta?.text) {
+            text = delta.text;
         }
 
         // Final chunk may include usage stats
@@ -133,7 +138,7 @@ function parseSSEData(dataStr) {
             };
         }
 
-        return { text, usage };
+        return { text, usage, ...(finishReason ? { finishReason } : {}) };
     } catch (e) {
         return null;
     }

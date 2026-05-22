@@ -16,27 +16,36 @@ router.get('/', (req, res) => {
     }
 });
 
+const ALLOWED_AI_PROVIDERS = new Set(['gemini', 'deepseek']);
+
 // Update preferences
 router.patch('/preferences', ensureAuthenticated, async (req, res) => {
     const start = Date.now();
-    const { targetLanguage } = req.body;
+    const { targetLanguage, aiProvider } = req.body;
 
-    if (!targetLanguage) {
-        return res.status(400).json({ error: 'targetLanguage is required' });
+    if (!targetLanguage && !aiProvider) {
+        return res.status(400).json({ error: 'targetLanguage or aiProvider is required' });
+    }
+
+    if (aiProvider && !ALLOWED_AI_PROVIDERS.has(aiProvider)) {
+        return res.status(400).json({ error: `Invalid aiProvider. Allowed: ${[...ALLOWED_AI_PROVIDERS].join(', ')}` });
     }
 
     try {
-        await db.query(
-            'UPDATE users SET target_language = ? WHERE id = ?',
-            [targetLanguage, req.user.id]
-        );
+        if (targetLanguage) {
+            await db.query('UPDATE users SET target_language = ? WHERE id = ?', [targetLanguage, req.user.id]);
+            req.user.target_language = targetLanguage;
+        }
 
-        // Update the session user object and bust cache
-        req.user.target_language = targetLanguage;
+        if (aiProvider) {
+            await db.query('UPDATE users SET ai_provider = ? WHERE id = ?', [aiProvider, req.user.id]);
+            req.user.ai_provider = aiProvider;
+        }
+
         invalidateCachedUser(req.user.id);
 
-        logger.info({ route: 'PATCH /api/user/preferences', userId: req.user.id, targetLanguage, duration: Date.now() - start });
-        res.json({ success: true, targetLanguage });
+        logger.info({ route: 'PATCH /api/user/preferences', userId: req.user.id, targetLanguage, aiProvider, duration: Date.now() - start });
+        res.json({ success: true, targetLanguage, aiProvider });
     } catch (error) {
         logger.error({ route: 'PATCH /api/user/preferences', userId: req.user.id, error: error.message });
         console.error('Failed to update user preferences:', error);

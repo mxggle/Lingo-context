@@ -73,10 +73,6 @@ function logCacheMetrics(providerName, rawUsage) {
         console.log(
             `[Cache] ${providerName}: ${cachedTokens}/${totalPromptTokens} prompt tokens cached (${pct}%, saved ~$${savings.toFixed(6)})`
         );
-    } else if (totalPromptTokens > 0) {
-        console.log(
-            `[Cache] ${providerName}: 0/${totalPromptTokens} prompt tokens cached (no cache hit)`
-        );
     }
 }
 
