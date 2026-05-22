@@ -2,16 +2,27 @@ const path = require('path');
 const kuromoji = require('kuromoji');
 
 let tokenizer = null;
+let tokenizerPromise = null;
 
-const dicPath = path.join(path.dirname(require.resolve('kuromoji/package.json')), 'dict');
-kuromoji.builder({ dicPath }).build((err, t) => {
-    if (err) {
-        console.error('kuromoji init failed:', err.message);
-    } else {
-        tokenizer = t;
-        console.log('kuromoji tokenizer ready');
-    }
-});
+function getTokenizer() {
+    if (tokenizer) return Promise.resolve(tokenizer);
+    if (tokenizerPromise) return tokenizerPromise;
+
+    const dicPath = path.join(path.dirname(require.resolve('kuromoji/package.json')), 'dict');
+    tokenizerPromise = new Promise((resolve, reject) => {
+        kuromoji.builder({ dicPath }).build((err, t) => {
+            if (err) {
+                tokenizerPromise = null;
+                reject(err);
+                return;
+            }
+            tokenizer = t;
+            resolve(tokenizer);
+        });
+    });
+
+    return tokenizerPromise;
+}
 
 function katakanaToHiragana(str) {
     return str.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
@@ -78,9 +89,9 @@ function tokenToRuby(surface, reading) {
     return html;
 }
 
-function generateFurigana(text) {
-    if (!tokenizer) return text;
-    const tokens = tokenizer.tokenize(text);
+async function generateFurigana(text) {
+    const activeTokenizer = await getTokenizer();
+    const tokens = activeTokenizer.tokenize(text);
     return tokens.map(token => {
         const { surface_form, reading } = token;
         if (!reading || reading === '*' || reading === surface_form) return surface_form;

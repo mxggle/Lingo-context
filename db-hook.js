@@ -1,5 +1,5 @@
 // LingoContext - Database Hook
-// Placeholder for custom SQL backend integration
+// Persists vocabulary through the configured backend API.
 
 import { getConfig } from './config.js';
 

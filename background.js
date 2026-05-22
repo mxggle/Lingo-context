@@ -263,35 +263,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-// Hot reload for development
-if (CONFIG.DEV_MODE) {
-    const HOT_RELOAD_URL = 'http://localhost:35729/events';
-
-    function connectHotReload() {
-        try {
-            const es = new EventSource(HOT_RELOAD_URL);
-
-            es.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'reload') {
-                    console.log('🔄 Hot reload triggered, reloading extension...');
-                    chrome.runtime.reload();
-                }
-            };
-
-            es.onerror = () => {
-                es.close();
-                // Retry connection after 5 seconds
-                setTimeout(connectHotReload, 5000);
-            };
-
-            console.log('🔌 Connected to hot reload server');
-        } catch (e) {
-            console.log('Hot reload server not available');
-        }
-    }
-
-    connectHotReload();
-}
-
 console.log('LingoContext background service worker loaded');

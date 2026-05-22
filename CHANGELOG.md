@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0] - 2026-05-22
+
+### Features
+
+- Added provider selection support for Gemini, DeepSeek, OpenRouter, and Codex-compatible analysis providers
+- Added faster local dictionary, furigana, and Edge TTS-backed pronunciation flows
+- Improved contextual AI output with target-language enforcement, word-level explanations, and larger token-limit configuration
+- Updated the extension cursor, popup interactions, audio replay behavior, and production packaging flow
+
+### Fixes
+
+- Removed localhost permissions and development hot-reload code from production extension builds
+- Hardened user preference persistence, database initialization, privacy copy, and production configuration defaults
+- Made furigana tokenizer initialization lazy so server tests and runtime requests do not race background startup work
+
+### Release
+
+- Bumped extension and package metadata to version `2.0.0`
+- Refreshed the Chrome Web Store production archive
+
 ## [1.2.1] - 2026-03-10
 
 ### Features

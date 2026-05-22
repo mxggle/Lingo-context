@@ -98,7 +98,7 @@ The extension uses `CONFIG.BACKEND_URL` as its API endpoint. For local developme
 http://localhost:3303/api
 ```
 
-For production packaging, restore the hosted backend URL before building the release bundle.
+For local development, override `BACKEND_URL` in `chrome.storage.local` or use a temporary local build. The checked-in extension defaults to the hosted backend so store builds are safe by default.
 
 ### 3. Run Locally
 
@@ -150,7 +150,7 @@ docker-compose up --build
 npm run package
 ```
 
-Creates `extension.zip` in the repository root.
+Creates the Chrome Web Store-ready `lingocontext-production.zip` in the repository root.
 
 ### Production build
 

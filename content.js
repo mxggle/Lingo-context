@@ -38,6 +38,9 @@ const wordDefinitionCache = new Map(); // text → string[]
 // Current speak state (updated immediately on selection, refined when AI finishes)
 let currentSpeakText = '';
 let currentSpeakLang = 'en';
+let currentAudio = null;
+let currentAudioUrl = null;
+let speechRequestId = 0;
 
 async function init() {
   // Check for auth data from success page (for login flow)
@@ -249,6 +252,7 @@ function getPopupStyles() {
       color: #e7e5e4;
       animation: slideUp 0.25s ease-out;
       overflow: auto;
+      overscroll-behavior: contain;
       resize: both;
     }
 
@@ -392,6 +396,7 @@ function getPopupStyles() {
       padding: 16px;
       flex: 1;
       overflow-y: auto;
+      overscroll-behavior: contain;
       min-height: 0; /* required for flex overflow to work */
     }
 
@@ -772,6 +777,36 @@ function setupEventListeners() {
 
   // Drag functionality
   setupDragListeners();
+  setupPopupScrollContainment();
+}
+
+function shouldContainPopupWheel(scrollContainer, deltaY) {
+  if (!scrollContainer || deltaY === 0) {
+    return false;
+  }
+
+  const maxScrollTop = Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0);
+  if (maxScrollTop === 0) {
+    return true;
+  }
+
+  if (deltaY < 0) {
+    return scrollContainer.scrollTop <= 0;
+  }
+
+  return scrollContainer.scrollTop >= maxScrollTop;
+}
+
+function setupPopupScrollContainment() {
+  popup.addEventListener('wheel', (event) => {
+    const scrollContainer = event.target.closest('.popup-content') || popup;
+
+    if (shouldContainPopupWheel(scrollContainer, event.deltaY)) {
+      event.preventDefault();
+    }
+
+    event.stopPropagation();
+  }, { passive: false });
 }
 
 function setupDragListeners() {
@@ -1141,22 +1176,33 @@ function isJapaneseText(text) {
 function updateFuriganaDisplay(html, smooth = false) {
   const el = popup?.querySelector('.selected-text');
   if (!el) return;
+  const safeHtml = sanitizeFuriganaHtml(html);
   if (smooth) {
     el.style.transition = 'opacity 0.1s ease';
     el.style.opacity = '0';
     setTimeout(() => {
-      el.innerHTML = html;
+      el.innerHTML = safeHtml;
       el.style.opacity = '1';
     }, 100);
   } else {
-    el.innerHTML = html;
+    el.innerHTML = safeHtml;
   }
+}
+
+// Keep furigana rendering limited to ruby annotation markup from the backend.
+function sanitizeFuriganaHtml(html) {
+  const allowedTags = new Set(['ruby', 'rt', 'rp', 'rb']);
+  return String(html || '').replace(/<\/?([a-zA-Z][\w:-]*)(?:\s[^>]*)?>/g, (tag, tagName) => {
+    const normalized = tagName.toLowerCase();
+    if (!allowedTags.has(normalized)) return '';
+    return tag.startsWith('</') ? `</${normalized}>` : `<${normalized}>`;
+  });
 }
 
 // Strip ruby annotations from non-kanji characters (hiragana/katakana should not have furigana)
 function filterKanjiOnlyFurigana(html) {
   const template = document.createElement('template');
-  template.innerHTML = html;
+  template.innerHTML = sanitizeFuriganaHtml(html);
   template.content.querySelectorAll('ruby').forEach(ruby => {
     const rt = ruby.querySelector('rt');
     const baseText = [...ruby.childNodes]
@@ -1169,7 +1215,7 @@ function filterKanjiOnlyFurigana(html) {
   });
   const div = document.createElement('div');
   div.appendChild(template.content);
-  return div.innerHTML;
+  return sanitizeFuriganaHtml(div.innerHTML);
 }
 
 // Render quick definition meanings as HTML string
@@ -1602,9 +1648,12 @@ function detectLanguage(text) {
 // Speak via Edge TTS (routed through background.js), fall back to Web Speech API
 function speakText(text, lang) {
   if (!text) return;
+  const requestId = ++speechRequestId;
   if (window.speechSynthesis) window.speechSynthesis.cancel();
+  stopCurrentAudio();
 
   chrome.runtime.sendMessage({ type: 'EDGE_TTS', text, lang }, (response) => {
+    if (requestId !== speechRequestId) return;
     if (chrome.runtime.lastError || !response?.audio) {
       speakWithWebSpeech(text, lang);
       return;
@@ -1616,13 +1665,41 @@ function speakText(text, lang) {
       const blob = new Blob([bytes], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.onended = () => URL.revokeObjectURL(url);
-      audio.onerror = () => { URL.revokeObjectURL(url); speakWithWebSpeech(text, lang); };
-      audio.play().catch(() => { URL.revokeObjectURL(url); speakWithWebSpeech(text, lang); });
+      currentAudio = audio;
+      currentAudioUrl = url;
+      audio.onended = () => {
+        if (currentAudio === audio) clearCurrentAudio();
+        else URL.revokeObjectURL(url);
+      };
+      audio.onerror = () => {
+        if (currentAudio === audio) clearCurrentAudio();
+        else URL.revokeObjectURL(url);
+        if (requestId === speechRequestId) speakWithWebSpeech(text, lang);
+      };
+      audio.play().catch(() => {
+        if (currentAudio === audio) clearCurrentAudio();
+        else URL.revokeObjectURL(url);
+        if (requestId === speechRequestId) speakWithWebSpeech(text, lang);
+      });
     } catch (_) {
-      speakWithWebSpeech(text, lang);
+      if (requestId === speechRequestId) speakWithWebSpeech(text, lang);
     }
   });
+}
+
+function stopCurrentAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+  }
+  clearCurrentAudio();
+}
+
+function clearCurrentAudio() {
+  if (currentAudioUrl) {
+    URL.revokeObjectURL(currentAudioUrl);
+  }
+  currentAudio = null;
+  currentAudioUrl = null;
 }
 
 function speakWithWebSpeech(text, lang) {

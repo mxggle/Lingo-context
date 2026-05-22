@@ -86,3 +86,14 @@ test('sentence context includes previous, selected, and next sentences', () => {
   assert.ok(!context.includes('[Website:'));
   assert.ok(!context.includes('[Description:'));
 });
+
+test('furigana sanitizer only allows ruby annotation tags without attributes', () => {
+  const sandbox = loadContentScript();
+
+  const sanitized = sandbox.sanitizeFuriganaHtml(
+    '<ruby onclick="alert(1)">漢<rt style="color:red">かん</rt></ruby><img src=x onerror=alert(1)>字<script>alert(1)</script>'
+  );
+
+  assert.equal(sanitized, '<ruby>漢<rt>かん</rt></ruby>字alert(1)');
+  assert.doesNotMatch(sanitized, /onclick|style|img|script|onerror/);
+});
