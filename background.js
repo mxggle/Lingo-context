@@ -91,7 +91,12 @@ chrome.runtime.onConnect.addListener((port) => {
 
                     if (!response.ok) {
                         const error = await response.json().catch(() => ({}));
-                        port.postMessage({ error: true, message: error.message || `Backend Error: ${response.status}` });
+                        port.postMessage({
+                            error: true,
+                            status: response.status,
+                            code: error.code,
+                            message: error.message || error.error || `Backend Error: ${response.status}`
+                        });
                         port.disconnect();
                         return;
                     }

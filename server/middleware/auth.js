@@ -5,7 +5,11 @@ const ensureAuthenticated = (req, res, next) => {
     if (req.isAuthenticated()) {
         return next();
     }
-    res.status(401).json({ error: 'Unauthorized. Please login.' });
+    res.status(401).json({
+        error: 'Unauthorized. Please login.',
+        message: 'Please sign in via the LingoContext popup to use this feature.',
+        code: 'AUTH_REQUIRED'
+    });
 };
 
 // CSRF Protection for mutating requests

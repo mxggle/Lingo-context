@@ -25,7 +25,13 @@ describe('auth middleware', () => {
 
             expect(req.isAuthenticated).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized. Please login.' });
+            // Body shape is intentionally rich so the extension can switch its
+            // UI into a "sign in" affordance instead of a generic error.
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                error: 'Unauthorized. Please login.',
+                code: 'AUTH_REQUIRED',
+                message: expect.stringMatching(/sign in/i),
+            }));
             expect(next).not.toHaveBeenCalled();
         });
     });

@@ -170,4 +170,35 @@ describe('index.js (App Setup)', () => {
         expect(res.status).toBe(307);
         expect(res.header.location).toBe('/api/user/stats');
     });
+
+    describe('Auth gate on cost-bearing routes', () => {
+        const ALLOWED_EXT_ORIGIN = 'chrome-extension://test-ext-id';
+
+        beforeEach(() => {
+            process.env.NODE_ENV = 'development';
+            process.env.RATE_LIMIT_DISABLED = '1';
+            // index.test.js mocks passport so req.isAuthenticated() returns false,
+            // simulating a request from an anonymous caller (curl, scraper, etc.).
+            app = require('../index');
+        });
+
+        const cases = [
+            { name: 'analyze', method: 'post', path: '/api/analyze', body: { text: 'hi' } },
+            { name: 'analyze stream', method: 'post', path: '/api/analyze/stream', body: { text: 'hi' } },
+            { name: 'tts', method: 'post', path: '/api/tts', body: { text: 'hi', lang: 'en' } },
+            { name: 'word-definition', method: 'post', path: '/api/word-definition', body: { text: 'hi' } },
+        ];
+
+        for (const c of cases) {
+            it(`returns 401 with AUTH_REQUIRED on /${c.path} for unauthenticated callers`, async () => {
+                const res = await request(app)[c.method](c.path)
+                    .set('Origin', ALLOWED_EXT_ORIGIN)
+                    .send(c.body);
+
+                expect(res.status).toBe(401);
+                expect(res.body.code).toBe('AUTH_REQUIRED');
+                expect(res.body.message).toMatch(/sign in/i);
+            });
+        }
+    });
 });

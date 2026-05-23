@@ -1327,7 +1327,8 @@ function analyzeText(text, context, mode) {
 
     const handleMessage = (msg) => {
       if (msg.error) {
-        popup.innerHTML = renderError(msg.message);
+        const isAuth = msg.code === 'AUTH_REQUIRED' || msg.status === 401;
+        popup.innerHTML = renderError(msg.message, { authRequired: isAuth });
         syncPinButton();
         setupErrorActions();
         isLoading = false;
@@ -1465,9 +1466,14 @@ function renderLoading() {
 }
 
 // Render error state
-function renderError(message) {
+function renderError(message, opts = {}) {
+  const { authRequired = false } = opts;
   const errorTitleStr = getTransl('errorTitle') || 'Error';
   const tryAgainStr = getTransl('tryAgainBtn') || 'Try Again';
+  const loginBtnStr = getTransl('loginBtn') || 'Sign in';
+  const actionAttr = authRequired ? 'data-action="login"' : 'data-action="retry"';
+  const actionLabel = authRequired ? loginBtnStr : tryAgainStr;
+  const icon = authRequired ? '🔒' : '⚠️';
 
   return `
     <div class="popup-header">
@@ -1485,9 +1491,9 @@ function renderError(message) {
       </div>
     </div>
     <div class="error">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon">${icon}</div>
       <div class="error-message">${escapeHtml(message)}</div>
-      <button class="error-retry" data-action="retry">${escapeHtml(tryAgainStr)}</button>
+      <button class="error-retry" ${actionAttr}>${escapeHtml(actionLabel)}</button>
     </div>
     <div class="resize-hint"></div>
   `;
@@ -1605,6 +1611,10 @@ function setupErrorActions() {
       popup.innerHTML = renderLoading();
       analyzeText(activeSelection.text, activeSelection.context, mode);
     }
+  });
+
+  popup.querySelector('[data-action="login"]')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'OPEN_LOGIN' });
   });
 }
 

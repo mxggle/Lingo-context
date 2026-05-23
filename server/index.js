@@ -9,9 +9,10 @@ const passport = require('./auth');
 const geminiCache = require('./services/geminiCacheService');
 
 // Middleware
-const { createCsrfMiddleware } = require('./middleware/auth');
+const { createCsrfMiddleware, ensureAuthenticated } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/requestLogger');
+const { aiPerMinute, aiPerDay, ttsPerMinute, publicPerMinute } = require('./middleware/rateLimit');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -122,15 +123,21 @@ app.use(passport.session());
 db.initializeDatabase();
 
 // --- Routes ---
+// Auth + per-user rate limits guard every cost-bearing route. The extension
+// already sends `credentials: 'include'`, so signed-in users are unaffected.
+// Anonymous callers (curl, scraping bots, other websites) get a clean 401.
 app.use('/auth', authRoutes);
-app.use('/api/analyze', analyzeRoutes);
-app.use('/api/analyze/stream', analyzeStreamRoutes);
+app.use('/api/analyze', ensureAuthenticated, aiPerMinute, aiPerDay, analyzeRoutes);
+app.use('/api/analyze/stream', ensureAuthenticated, aiPerMinute, aiPerDay, analyzeStreamRoutes);
+app.use('/api/word-definition', ensureAuthenticated, aiPerMinute, aiPerDay, wordDefinitionRoutes);
+app.use('/api/tts', ensureAuthenticated, ttsPerMinute, ttsRoutes);
 app.use('/api/words', wordsRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/furigana', furiganaRoutes);
-app.use('/api/dictionary', dictionaryRoutes);
-app.use('/api/word-definition', wordDefinitionRoutes);
-app.use('/api/tts', ttsRoutes);
+// Furigana + dictionary are local/upstream-free and don't burn AI tokens.
+// Keep them open (so the extension can prefetch furigana even before login),
+// but rate-limit per IP to prevent scraping.
+app.use('/api/furigana', publicPerMinute, furiganaRoutes);
+app.use('/api/dictionary', publicPerMinute, dictionaryRoutes);
 
 // Note: /api/stats was previously at /api/stats, now at /api/user/stats
 // Add a redirect for backward compatibility
