@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const PROJECT_ROOT = __dirname;
+const PROJECT_ROOT = path.join(__dirname, '..');
 const BUILD_DIR = path.join(PROJECT_ROOT, 'dist-prod');
 const ARCHIVE_NAME = 'lingocontext-production.zip';
-const ARCHIVE_PATH = path.join(PROJECT_ROOT, ARCHIVE_NAME);
+const ARCHIVE_PATH = path.join(PROJECT_ROOT, 'releases', ARCHIVE_NAME);
 
 const INCLUDE_PATHS = [
     'manifest.json',
@@ -166,8 +166,8 @@ function buildProductionArchive() {
 
     console.log('Creating ZIP archive...');
     try {
-        execSync(`cd "${BUILD_DIR}" && zip -r -q "../${ARCHIVE_NAME}" ./*`);
-        console.log(`Success! Production archive created at: ${ARCHIVE_NAME}`);
+        execSync(`cd "${BUILD_DIR}" && zip -r -q "../releases/${ARCHIVE_NAME}" ./*`);
+        console.log(`Success! Production archive created at: releases/${ARCHIVE_NAME}`);
 
         console.log('Cleaning up temporary build directory...');
         fs.rmSync(BUILD_DIR, { recursive: true, force: true });

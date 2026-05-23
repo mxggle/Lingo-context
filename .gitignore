@@ -7,7 +7,7 @@ build
 .idea
 *.log
 coverage
-postgres-data
-mysql-data
+data/
+releases/
 pr.md
 .vercel

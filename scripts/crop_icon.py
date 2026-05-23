@@ -36,5 +36,10 @@ def crop_to_content_and_square(input_path, output_path, margin_ratio=0.05):
     square_img.save(output_path, "PNG")
     print(f"Final size: {square_img.size}")
 
+import os
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+icon_path = os.path.join(PROJECT_ROOT, "icons/icon-new-transparent.png")
+
 # Run the function
-crop_to_content_and_square("icons/icon-new-transparent.png", "icons/icon-new-transparent.png", margin_ratio=0.02)
+crop_to_content_and_square(icon_path, icon_path, margin_ratio=0.02)

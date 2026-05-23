@@ -18,7 +18,7 @@ const path = require('path');
 const http = require('http');
 
 // Configuration
-const WATCH_DIR = __dirname;
+const WATCH_DIR = path.join(__dirname, '..');
 const PORT = 35729;
 const DEBOUNCE_MS = 300;
 

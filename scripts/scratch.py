@@ -21,4 +21,6 @@ def remove_bg(input_path, output_path):
     except Exception as e:
         print(f"Error: {e}")
 
-remove_bg("icons/icon-new.png", "icons/icon-new-transparent.png")
+import os
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+remove_bg(os.path.join(PROJECT_ROOT, "icons/icon-new.png"), os.path.join(PROJECT_ROOT, "icons/icon-new-transparent.png"))

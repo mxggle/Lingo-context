@@ -1,6 +1,8 @@
 from PIL import Image
 
-img = Image.open("icons/icon-new-transparent.png").convert("RGBA")
+import os
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+img = Image.open(os.path.join(PROJECT_ROOT, "icons/icon-new-transparent.png")).convert("RGBA")
 # Get alpha channel
 alpha = img.split()[-1]
 
